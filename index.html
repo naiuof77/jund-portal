@@ -1819,7 +1819,15 @@ var _myAttCache = [];
 var _fbListeners = [];
 var _fbReady = false;
 // دوال Firebase — تُعرَّف بعد تحميل SDK في نهاية الصفحة
-function fbSaveReport(r,a){if(db)return db.collection('reports').doc(r.id).set(Object.assign({},r,{_author:a,_ts:Date.now()}));return Promise.resolve();}
+function fbSaveReport(r,a){
+  // أضف توقيع المؤلف داخل التقرير حتى يظهر في الطباعة على أي جهاز
+  var rr=Object.assign({},r,{_author:a,_ts:Date.now()});
+  if(!rr.authorSig){
+    try{ var s=getUserSignature(a||r.author||currentUser.name); if(s) rr.authorSig=s; }catch(e){}
+  }
+  if(db)return db.collection('reports').doc(r.id).set(rr);
+  return Promise.resolve();
+}
 function fbDeleteReport(id){if(db)return db.collection('reports').doc(id).delete();return Promise.resolve();}
 function fbSaveRequest(r){if(db)return db.collection('requests').doc(r.id).set(Object.assign({},r,{_ts:Date.now()}));return Promise.resolve();}
 function fbSaveActiveUsers(){if(db)return db.collection('system').doc('activeUsers').set({list:activeUsers,_ts:Date.now()});return Promise.resolve();}
@@ -2394,7 +2402,7 @@ function openReport(r){
   document.getElementById('modal-status-badge').innerHTML='<span class="report-status '+r.statusCls+'">'+escHtml(r.status||'')+'</span>';
 
   // توقيع المُعِد في المودال
-  var modalSig=getUserSignature(r.author);
+  var modalSig=(r.authorSig||getUserSignature(r.author));
   var modalSigWrap=document.getElementById('modal-sig-wrap');
   if(modalSig){
     document.getElementById('modal-sig-img').src=modalSig;
@@ -2465,7 +2473,7 @@ function togglePrintPreview(){
   document.getElementById('pr-title').textContent=r.title.replace('— شفت ', '— ');
 
   // توقيع المُعِد في المعاينة
-  var prSig=getUserSignature(r.author);
+  var prSig=(r.authorSig||getUserSignature(r.author));
   var prSigWrap=document.getElementById('pr-sig-wrap');
   if(prSig){
     document.getElementById('pr-sig-img').src=prSig;
@@ -2751,7 +2759,7 @@ function _doPrintCurrentReport(r){
     if(sp.notes && sp.notes!=='لا يوجد'){
       w.document.write('<div class="sl">ملاحظات</div><div class="sv-gold">'+escHtml(sp.notes||'')+'</div>');
     }
-    var spAuthorSig=getUserSignature(sp.name||r.author);
+    var spAuthorSig=(r.authorSig||getUserSignature(sp.name||r.author));
     var spManagerSig=(currentUser.isManager||currentUser.isAdmin)?getUserSignature(currentUser.name):null;
     w.document.write('<div class="footer"><div>جميع المعلومات سرية ومحمية</div>'+
       '<div style="display:flex;gap:40px;align-items:flex-end">'+
@@ -2818,7 +2826,7 @@ function _doPrintCurrentReport(r){
     if(cctv.summary){
       w.document.write('<div class="sl">ملاحظات للوردية القادمة</div><div class="sv-gold">'+escHtml(cctv.summary||'')+'</div>');
     }
-    var cctvAuthorSig=getUserSignature(r.author);
+    var cctvAuthorSig=(r.authorSig||getUserSignature(r.author));
     var cctvManagerSig=(currentUser.isManager||currentUser.isAdmin)?getUserSignature(currentUser.name):null;
     w.document.write('<div class="footer"><div>جميع المعلومات سرية ومحمية</div>'+
       '<div style="display:flex;gap:40px;align-items:flex-end">'+
@@ -2949,7 +2957,7 @@ function _doPrintCurrentReport(r){
         '</tr>';
       }).join('')+'</tbody></table>');
     w.document.write('</div>');
-    var khAuthorSig=getUserSignature(r.author);
+    var khAuthorSig=(r.authorSig||getUserSignature(r.author));
     var khManagerSig=(currentUser.isManager||currentUser.isAdmin)?getUserSignature(currentUser.name):null;
     w.document.write('<div class="footer"><div>جميع المعلومات سرية ومحمية</div>'+
       '<div style="display:flex;gap:40px;align-items:flex-end">'+
@@ -2982,7 +2990,7 @@ function _doPrintCurrentReport(r){
       '</table>');
     // أغلق content div ثم page-wrap مع الـ footer
     w.document.write('</div>');
-    var tvAuthorSig=getUserSignature(r.author);
+    var tvAuthorSig=(r.authorSig||getUserSignature(r.author));
     var tvManagerSig=(currentUser.isManager||currentUser.isAdmin)?getUserSignature(currentUser.name):null;
     w.document.write('<div class="footer"><div>جميع المعلومات سرية ومحمية</div>'+
       '<div style="display:flex;gap:40px;align-items:flex-end">'+
@@ -3048,7 +3056,7 @@ function _doPrintCurrentReport(r){
       '</tbody></table>'
     );
     w.document.write('</div>');
-    var cvAuthorSig=getUserSignature(r.author);
+    var cvAuthorSig=(r.authorSig||getUserSignature(r.author));
     var cvManagerSig=(currentUser.isManager||currentUser.isAdmin)?getUserSignature(currentUser.name):null;
     w.document.write('<div class="footer"><div>جميع المعلومات سرية ومحمية</div>'+
       '<div style="display:flex;gap:40px;align-items:flex-end">'+
@@ -3091,7 +3099,7 @@ function _doPrintCurrentReport(r){
       '<div style="font-size:15px;line-height:2.2;color:#1a1a1a;white-space:pre-wrap;padding:18px 20px;background:#fafff8;border-right:3px solid #2d8a4e;border-radius:0 8px 8px 0;min-height:200px">'+escHtml(sh.body||'')+'</div>'
     );
     w.document.write('</div>');
-    var shAuthorSig=getUserSignature(r.author);
+    var shAuthorSig=(r.authorSig||getUserSignature(r.author));
     var shManagerSig=(currentUser.isManager||currentUser.isAdmin)?getUserSignature(currentUser.name):null;
     w.document.write('<div class="footer"><div>جميع المعلومات سرية ومحمية</div>'+
       '<div style="display:flex;gap:40px;align-items:flex-end">'+
@@ -3128,7 +3136,7 @@ function _doPrintCurrentReport(r){
       '</div>'
     );
     w.document.write('</div>');
-    var afAuthorSig=getUserSignature(r.author);
+    var afAuthorSig=(r.authorSig||getUserSignature(r.author));
     var afManagerSig=(currentUser.isManager||currentUser.isAdmin)?getUserSignature(currentUser.name):null;
     w.document.write('<div class="footer"><div>جميع المعلومات سرية ومحمية</div>'+
       '<div style="display:flex;gap:40px;align-items:flex-end">'+
@@ -3155,7 +3163,7 @@ function _doPrintCurrentReport(r){
     }
     w.document.write('<div class="sl">التوصيات</div><div class="sv-gray">'+escHtml(r.rec||'لا توجد توصيات')+'</div>');
     w.document.write('</div>');// إغلاق content div
-    var authorSig=getUserSignature(r.author);
+    var authorSig=(r.authorSig||getUserSignature(r.author));
     var managerSig=(currentUser.isManager||currentUser.isAdmin)?getUserSignature(currentUser.name):null;
     w.document.write('<div class="footer">'+
       '<div>جميع المعلومات سرية ومحمية</div>'+
@@ -3793,7 +3801,7 @@ function sendReport(){
     var priority = priMap[priClass]||'عادي';
     var priorityColor = priority==='عاجل'?'var(--red)':priority==='متوسط'?'var(--gold2)':'var(--green)';
     var tpTypeCls = {'واقعة':'badge-incident','افادة':'badge-daily','جولات دورية':'badge-patrol','استلام و تسليم دورية':'badge-patrol','المفاتيح':'badge-keys','مخالفات مرورية':'badge-incident','استلام الوردية للمشرفين':'badge-daily'}[tp]||'badge-daily';
-    var imgRefs = tp==='واقعة' ? incidentImages.map(function(img){ return {name:img.name}; }) : [];
+    var imgRefs = tp==='واقعة' ? incidentImages.map(function(img){ return {name:img.name, data:img.data}; }) : [];
     newReport={
       id:getNextSerial('RPT'),title:autoTitle,type:tp,typeCls:tpTypeCls,
       date:rDate,time:rTime,priority:priority,priorityColor:priorityColor,
@@ -3826,14 +3834,24 @@ function sendReport(){
   }
   // حفظ في Firebase
   var _rpt = newReport;
-  // احفظ الصور في localStorage
+  // احفظ الصور في localStorage كنسخة احتياطية محلية
   if(tp==='واقعة' && incidentImages.length>0){
     try{ localStorage.setItem('jund_imgs_'+_rpt.id, JSON.stringify(incidentImages)); }catch(e){}
+  }
+  // تحقق من حجم المستند قبل الإرسال (حد Firestore ~1 ميجا)
+  var _docSize = 0;
+  try{ _docSize = JSON.stringify(_rpt).length; }catch(e){}
+  if(_docSize > 950000){
+    showToast('⚠️ حجم الصور كبير جداً — قلّل عدد الصور وأعد المحاولة','red');
+    return;
   }
   // حفظ في Firebase — onSnapshot يُحدّث الـ cache تلقائياً
   fbSaveReport(_rpt, currentUser.name)
     .then(function(){ console.log('✅ تم حفظ التقرير في Firebase:', _rpt.id); })
-    .catch(function(e){ console.error('❌ خطأ في حفظ التقرير Firebase:', e.code, e.message); });
+    .catch(function(e){
+      console.error('❌ خطأ في حفظ التقرير Firebase:', e.code, e.message);
+      showToast('⚠️ تعذّر حفظ التقرير — قد تكون الصور كبيرة','red');
+    });
   incidentImages = [];
   renderIncidentImages();
   showToast('تم إرسال التقرير للمدير!','green');
@@ -4831,7 +4849,7 @@ function folderPrintRequest(r){
     '<div style="text-align:center;font-size:10px;color:#aaa;margin-top:20px;border-top:1px solid #eee;padding-top:10px">JOND | AMAAD — نظام الأمن المتكامل</div>'+
     '</body></html>');
   // حقن التواقيع بعد كتابة الـ HTML
-  var reqAuthorSig=getUserSignature(r.author);
+  var reqAuthorSig=(r.authorSig||getUserSignature(r.author));
   var reqDelegateSig=(r.type==='توكيل')?getUserSignature(f['الموكَّل_إليه']||''):null;
   var reqManagerSig=(currentUser.isManager||currentUser.isAdmin)?getUserSignature(currentUser.name):null;
   w.document.close();
@@ -9209,29 +9227,38 @@ function startUserListener(userName){
   // أوقف المستمعات القديمة
   try{ _fbListeners.forEach(function(u){ if(typeof u==='function') u(); }); _fbListeners=[]; }catch(e){}
   _myReportsLoading = true; // ننتظر Firebase
-  var l = db.collection('reports').where('author','==',userName).orderBy('_ts','desc').onSnapshot(function(snap){
+  var l = db.collection('reports').where('author','==',userName).onSnapshot(function(snap){
     _myReportsLoading = false;
     var seen={};
     _myReportsCache = snap.docs.map(function(d){ return d.data(); }).filter(function(r){
       if(!r||!r.id||seen[r.id]) return false; seen[r.id]=true; return true;
     });
+    // ترتيب محلي بدل orderBy (يتفادى الحاجة لفهرس مركّب)
+    _myReportsCache.sort(function(a,b){ return (b._ts||0)-(a._ts||0); });
     renderMyReports();
     renderDashboard();
     updateAlertsBadge();
     if(document.getElementById('view-folders') && document.getElementById('view-folders').classList.contains('active')){
       renderFolderContent();
     }
+  }, function(err){
+    // عند فشل الاستعلام لا تترك الصفحة معلّقة
+    _myReportsLoading = false;
+    console.error('خطأ مستمع التقارير:', err);
+    renderMyReports();
   });
-  var l2 = db.collection('requests').where('author','==',userName).orderBy('_ts','desc').onSnapshot(function(snap){
+  var l2 = db.collection('requests').where('author','==',userName).onSnapshot(function(snap){
     var seen={};
     _myRequestsCache = snap.docs.map(function(d){ return d.data(); }).filter(function(r){ if(!r||!r.id||seen[r.id]) return false; seen[r.id]=true; return true; });
+    _myRequestsCache.sort(function(a,b){ return (b._ts||0)-(a._ts||0); });
     if(typeof renderMyTrackingPage==='function') renderMyTrackingPage();
     if(typeof renderMyReqsFullList==='function') renderMyReqsFullList();
     if(typeof renderMyReqStrip==='function') renderMyReqStrip();
-  });
-  var l3 = db.collection('attendance').where('name','==',userName).orderBy('_ts','desc').onSnapshot(function(snap){
+  }, function(err){ console.error('خطأ مستمع الطلبات:', err); });
+  var l3 = db.collection('attendance').where('name','==',userName).onSnapshot(function(snap){
     _myAttCache = snap.docs.map(function(d){ return d.data(); });
-  });
+    _myAttCache.sort(function(a,b){ return (b._ts||0)-(a._ts||0); });
+  }, function(err){ console.error('خطأ مستمع الحضور:', err); });
   // مستمع الإشعارات — يُنبّه الرافع بقرار القبول/الرفض
   var l4 = db.collection('notifications').where('to','==',userName).where('read','==',false)
     .onSnapshot(function(snap){
