@@ -4764,11 +4764,15 @@ function renderFolderContent(){
 }
 
 function _saveEditedReport(newReport, oldId, authorKey){
-  // احذف القديم وأضف الجديد في Firebase
-  fbDeleteReport(oldId).then(function(){
-    fbSaveReport(newReport, authorKey);
-  }).catch(function(){
-    fbSaveReport(newReport, authorKey);
+  // احفظ الجديد أولاً، وبعد نجاح الحفظ احذف القديم (فقط إذا تغيّر الـ ID)
+  // هذا يمنع فقدان التقرير لو فشل أحد الإجراءات
+  fbSaveReport(newReport, authorKey).then(function(){
+    if(oldId && oldId !== newReport.id){
+      fbDeleteReport(oldId).catch(function(e){ console.error('خطأ في حذف النسخة القديمة:',e); });
+    }
+  }).catch(function(e){
+    console.error('خطأ في حفظ التقرير المعدّل:',e);
+    showToast('⚠️ تعذّر حفظ التعديل — التقرير الأصلي محفوظ','red');
   });
 }
 
@@ -8929,21 +8933,27 @@ function saveAdminEdit(){
   r.editedByAdmin = true;
   r.editedAt = new Date().toLocaleString('ar-SA');
 
-  // حفظ في localStorage
-  var saved = false;
+  // حفظ في Firebase (المصدر الأساسي للبيانات)
+  fbSaveReport(r, r.author).then(function(){
+    showToast('✅ تم حفظ التعديلات','green');
+  }).catch(function(e){
+    console.error('خطأ في حفظ تعديل الأدمن:',e);
+    showToast('⚠️ تعذّر حفظ التعديلات','red');
+  });
+
+  // نسخة احتياطية محلية
   var keys = ['jund_reports_'+r.author, 'jund_reports_'+currentUser.name];
   activeUsers.forEach(function(u){ keys.push('jund_reports_'+u.name); });
   keys.forEach(function(key){
     try{
       var arr = JSON.parse(localStorage.getItem(key)||'[]');
       var idx = arr.findIndex(function(x){ return x.id===r.id; });
-      if(idx>=0){ arr[idx]=r; localStorage.setItem(key,JSON.stringify(arr)); saved=true; }
+      if(idx>=0){ arr[idx]=r; localStorage.setItem(key,JSON.stringify(arr)); }
     }catch(e){}
   });
 
   closeAdminEditModal();
   closeModal();
-  showToast('✅ تم حفظ التعديلات','green');
   if(typeof renderAllReports==='function') renderAllReports();
   if(typeof renderMyReports==='function') renderMyReports();
   if(typeof renderDashboard==='function') renderDashboard();
