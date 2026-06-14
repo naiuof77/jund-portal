@@ -8950,9 +8950,6 @@ function saveAdminEdit(){
   if(typeof renderDashboard==='function') renderDashboard();
 }
 
-function getUserSignature(name){
-  try{return localStorage.getItem('jund_sig_'+(name||currentUser.name));}catch(e){return null;}
-}
 function injectSignatureInPrint(w,authorName){
   var sig=getUserSignature(authorName||currentUser.name);
   w.document.write(
