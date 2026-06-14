@@ -3228,6 +3228,8 @@ function applyMobileMode(){
 }
 
 function doLogout(){
+  // امسح الجلسة المحفوظة حتى لا يعود الدخول التلقائي بعد تحديث الصفحة
+  try{ sessionStorage.removeItem('jund_session'); }catch(e){}
   // أوقف المستمعات بشكل صحيح (كل مستمع Firebase هو دالة تُستدعى لإلغاء الاشتراك)
   try{
     _fbListeners.forEach(function(unsub){ if(typeof unsub==='function') unsub(); });
