@@ -3896,11 +3896,10 @@ function renderMyReports(){
   // إزالة التكرار بالـ ID من الـ cache
   var seenIds={};
   _myReportsList=[];
-  _myReportsLoading=true;
   _myReportsCache.forEach(function(r){
     if(r && r.id && !seenIds[r.id]){ seenIds[r.id]=true; _myReportsList.push(r); }
   });
-  // إذا الـ cache لا يزال فارغاً وننتظر Firebase، أظهر loading
+  // أظهر التحميل فقط إذا ما زلنا ننتظر رد Firebase الأول
   if(_myReportsList.length===0 && _myReportsLoading){
     list.innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--text2)">'+
       '<i class="ti ti-loader-2" style="font-size:40px;animation:spin 1s linear infinite;display:block;margin-bottom:14px"></i>'+
@@ -9068,22 +9067,27 @@ function injectSignatureInPrint(w,authorName){
 
 // --- التقارير ---
 function fbSaveReport(report, authorName){
-  return db.collection('reports').doc(report.id).set(Object.assign({}, report, {_author: authorName, _ts: Date.now()}));
+  var rr=Object.assign({}, report, {_author: authorName, _ts: Date.now()});
+  if(!rr.authorSig){
+    try{ var s=getUserSignature(authorName||report.author||currentUser.name); if(s) rr.authorSig=s; }catch(e){}
+  }
+  return db.collection('reports').doc(report.id).set(rr);
 }
 function fbDeleteReport(reportId){
   return db.collection('reports').doc(reportId).delete();
 }
 function fbLoadUserReports(authorName, callback){
-  db.collection('reports').where('author','==',authorName).orderBy('_ts','desc').onSnapshot(function(snap){
+  db.collection('reports').where('author','==',authorName).onSnapshot(function(snap){
     var reports = snap.docs.map(function(d){ return d.data(); });
+    reports.sort(function(a,b){ return (b._ts||0)-(a._ts||0); });
     callback(reports);
-  });
+  }, function(err){ console.error('خطأ تحميل تقارير المستخدم:', err); callback([]); });
 }
 function fbLoadAllReports(callback){
   db.collection('reports').orderBy('_ts','desc').onSnapshot(function(snap){
     var reports = snap.docs.map(function(d){ return d.data(); });
     callback(reports);
-  });
+  }, function(err){ console.error('خطأ تحميل كل التقارير:', err); callback([]); });
 }
 
 // --- الطلبات ---
