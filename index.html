@@ -9191,11 +9191,20 @@ function startAdminListeners(){
   var l1 = db.collection('reports').orderBy('_ts','desc').onSnapshot(function(snap){
     var fromFB = snap.docs.map(function(d){ return d.data(); });
     _allReportsCache = fromFB;
+    // تقارير الأدمن نفسه (لصفحة "تقاريري") + إيقاف شاشة التحميل
+    _myReportsLoading = false;
+    _myReportsCache = fromFB.filter(function(r){ return r && r.author===currentUser.name; });
+    _myReportsCache.sort(function(a,b){ return (b._ts||0)-(a._ts||0); });
+    if(typeof renderMyReports==='function') renderMyReports();
     if(document.getElementById('view-all-reports') && document.getElementById('view-all-reports').classList.contains('active')){
       renderAllReports();
     }
     renderDashboard();
     updateAlertsBadge();
+  }, function(err){
+    _myReportsLoading = false;
+    console.error('خطأ مستمع تقارير الأدمن:', err);
+    if(typeof renderMyReports==='function') renderMyReports();
   });
   // مستمع الطلبات
   var l2 = db.collection('requests').orderBy('_ts','desc').onSnapshot(function(snap){
