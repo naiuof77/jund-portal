@@ -408,9 +408,6 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
       <div class="form-group"><label class="form-label">الرقم الوظيفي</label><input class="form-input" type="text" placeholder="أدخل رقمك الوظيفي" id="login-user"/></div>
       <div class="form-group"><label class="form-label">كلمة المرور</label><input class="form-input" type="password" placeholder="••••••••" id="login-pass"/></div>
       <button class="btn-primary" onclick="doLogin()"><i class="ti ti-login"></i> دخول إلى البوابة</button>
-      <div id="admin-reset-wrap" style="display:none;margin-top:12px;text-align:center">
-        <button onclick="emergencyAdminReset()" style="background:transparent;border:none;color:var(--text2);font-size:12px;cursor:pointer;font-family:Tajawal,sans-serif;text-decoration:underline">إعادة تعيين كلمة مرور الأدمن</button>
-      </div>
     </div>
     <div id="form-register" style="display:none">
       <div class="form-group"><label class="form-label">الاسم الكامل</label><input class="form-input" type="text" placeholder="الاسم الرباعي" id="reg-name"/></div>
@@ -3253,28 +3250,6 @@ var currentUser={isAdmin:false,hasFolderAccess:false,name:'',empId:''};
 
 var _loginAttempts={};
 var _loginLockUntil=0;
-
-// إظهار زر إعادة التعيين للأدمن فقط
-document.getElementById('login-user').addEventListener('input', function(){
-  var wrap = document.getElementById('admin-reset-wrap');
-  if(wrap) wrap.style.display = this.value.trim()==='naiuof77' ? 'block' : 'none';
-});
-
-function emergencyAdminReset(){
-  if(!confirm('هل تريد إعادة تعيين كلمة مرور الأدمن إلى 1234؟')) return;
-  // احذف من localStorage
-  try{ localStorage.removeItem('jund_pass_naiuof77'); }catch(e){}
-  // احذف من Firebase إذا كان متصلاً
-  if(db){
-    db.collection('passwords').doc('naiuof77').delete().then(function(){
-      showToast('✅ تمت إعادة التعيين — كلمة المرور الآن: 1234','green');
-    }).catch(function(){
-      showToast('✅ تمت إعادة التعيين محلياً — كلمة المرور الآن: 1234','green');
-    });
-  } else {
-    showToast('✅ تمت إعادة التعيين — كلمة المرور الآن: 1234','green');
-  }
-}
 
 function doLogin(){
   var now=Date.now();
