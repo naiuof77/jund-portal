@@ -3515,14 +3515,28 @@ function compressImage(dataUrl, maxW, quality){
     try{
       var img=new Image();
       img.onload=function(){
-        var w=img.width, h=img.height;
-        if(w>maxW){ h=Math.round(h*(maxW/w)); w=maxW; }
-        var canvas=document.createElement('canvas');
-        canvas.width=w; canvas.height=h;
-        var ctx=canvas.getContext('2d');
-        ctx.drawImage(img,0,0,w,h);
-        try{ resolve(canvas.toDataURL('image/jpeg',quality||0.55)); }
-        catch(e){ resolve(dataUrl); }
+        var TARGET=200000; // الحجم الأقصى المستهدف للصورة الواحدة (~200KB)
+        function render(width, q){
+          var w=img.width, h=img.height;
+          if(w>width){ h=Math.round(h*(width/w)); w=width; }
+          var canvas=document.createElement('canvas');
+          canvas.width=w; canvas.height=h;
+          var ctx=canvas.getContext('2d');
+          ctx.drawImage(img,0,0,w,h);
+          try{ return canvas.toDataURL('image/jpeg',q); }
+          catch(e){ return null; }
+        }
+        var width=maxW||800, q=quality||0.5;
+        var out=render(width,q);
+        // ضغط تكراري: قلّل الجودة ثم الأبعاد حتى تنزل تحت الحجم المستهدف
+        var tries=0;
+        while(out && out.length>TARGET && tries<8){
+          if(q>0.3){ q-=0.1; } else { width=Math.round(width*0.8); }
+          var next=render(width,q);
+          if(!next) break;
+          out=next; tries++;
+        }
+        resolve(out||dataUrl);
       };
       img.onerror=function(){ resolve(dataUrl); };
       img.src=dataUrl;
@@ -3535,8 +3549,8 @@ function onIncidentImagesChange(input){
   files.forEach(function(file){
     var reader = new FileReader();
     reader.onload = function(e){
-      // ضغط الصورة قبل التخزين لتفادي تجاوز حد Firestore وتعليق الصفحة
-      compressImage(e.target.result, 1000, 0.55).then(function(compressed){
+      // ضغط الصورة قبل التخزين لتفادي تجاوز حد Firestore
+      compressImage(e.target.result, 800, 0.5).then(function(compressed){
         incidentImages.push({name: file.name, data: compressed});
         renderIncidentImages();
       });
@@ -6275,9 +6289,12 @@ function loadTvPhotos(input){
   files.forEach(function(file){
     var reader=new FileReader();
     reader.onload=function(e){
-      tvPhotosData.push({data:e.target.result,name:file.name});
-      remaining--;
-      if(remaining===0) renderTvPhotosGrid();
+      // ضغط الصورة قبل التخزين
+      compressImage(e.target.result, 800, 0.5).then(function(compressed){
+        tvPhotosData.push({data:compressed,name:file.name});
+        remaining--;
+        if(remaining===0) renderTvPhotosGrid();
+      });
     };
     reader.readAsDataURL(file);
   });
@@ -6331,7 +6348,7 @@ function submitTrafficViolation(){
     status:'مُرسل',statusCls:'status-sent',
     body:body,actions:'—',rec:'—',owner:currentUser.name,
     tv:{vehicleType:vehicleType,plate:plate,violationType:violationType,time:time,date:arabicDate,location:location,notes:notes},
-    images:tvPhotosData.map(function(img){ return {name:img.name}; })
+    images:tvPhotosData.map(function(img){ return {name:img.name, data:img.data}; })
   };
   if(_editingReport){
     newReport.id=_editingReport.id; newReport.author=_editingReport.author; newReport.owner=_editingReport.owner;
