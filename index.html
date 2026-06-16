@@ -5165,7 +5165,23 @@ function onTwkToChange(){
   var toId=document.getElementById('twk-to-id');
   if(!sel||!toId) return;
   var selected=sel.options[sel.selectedIndex];
-  toId.value=selected?( selected.getAttribute('data-empid')||''):'';
+  var empId=selected?(selected.getAttribute('data-empid')||''):'';
+  var chosenName=sel.value||'';
+  // إذا لم يوجد الرقم في الخيار، ابحث في قائمة المستخدمين
+  if(!empId && chosenName){
+    var u=activeUsers.find(function(x){return x.name===chosenName;});
+    if(u && u.empId) empId=u.empId;
+  }
+  // كمصدر أخير، ابحث في userData بـ Firebase
+  if(!empId && chosenName && typeof db!=='undefined' && db){
+    db.collection('userData').where('name','==',chosenName).limit(1).get().then(function(snap){
+      if(!snap.empty){
+        var d=snap.docs[0].data();
+        if(d.empId){ toId.value=d.empId; }
+      }
+    }).catch(function(){});
+  }
+  toId.value=empId||'';
 }
 
 function onShiftHandoverChange(){
@@ -7464,7 +7480,7 @@ function approvePendingUser(id,name,initial){
   pendingUsers=pendingUsers.filter(function(u){return u.id!==id;});
   savePendingUsers();
 
-  activeUsers.push({id:'au'+Date.now(),name:name,initial:initial,rank:rank,rankIdx:rankIdx,canApproveRequests:rank==='مدير'});
+  activeUsers.push({id:'au'+Date.now(),name:name,initial:initial,rank:rank,rankIdx:rankIdx,empId:(pendingEntry&&pendingEntry.empId)||'',canApproveRequests:rank==='مدير'});
   saveActiveUsersPermissions();
 
   // الآن فقط احفظ بيانات المستخدم في Firebase بعد الموافقة
