@@ -2620,7 +2620,7 @@ function togglePrintPreview(){
     document.getElementById('pr-actions-wrap').style.display='none';
     document.getElementById('pr-rec-wrap').style.display='none';
     document.querySelectorAll('#modal-print-doc .section-pr-extra').forEach(function(s){s.style.display='none';});
-  } else if(r.type==='إفادة'){
+  } else if(r.type==='إفادة' || r.type==='افادة'){
     // الإفادة: موضوع + نص فقط (مطابق للطباعة الفعلية) — بدون إجراءات أو توصيات
     document.getElementById('pr-date').style.display='';
     document.getElementById('pr-time').style.display='';
