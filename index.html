@@ -2620,13 +2620,18 @@ function togglePrintPreview(){
     document.getElementById('pr-actions-wrap').style.display='none';
     document.getElementById('pr-rec-wrap').style.display='none';
     document.querySelectorAll('#modal-print-doc .section-pr-extra').forEach(function(s){s.style.display='none';});
-  } else {
-    // إعادة إظهار التاريخ والوقت في الهيدر
+  } else if(r.type==='إفادة'){
+    // الإفادة: موضوع + نص فقط (مطابق للطباعة الفعلية) — بدون إجراءات أو توصيات
     document.getElementById('pr-date').style.display='';
     document.getElementById('pr-time').style.display='';
-    document.getElementById('pr-body').textContent=r.body;
-    document.getElementById('pr-actions').textContent=r.actions||'—';
-    document.getElementById('pr-actions-wrap').style.display='block';
+    var af=r.afada||{body:r.body};
+    document.getElementById('pr-title').textContent=(r.title||'').replace('إفادة — ','');
+    document.getElementById('pr-body').textContent=af.body||r.body||'';
+    document.getElementById('pr-actions-wrap').style.display='none';
+    document.getElementById('pr-rec-wrap').style.display='none';
+    var prResultWrapA=document.getElementById('pr-result-wrap');
+    if(prResultWrapA) prResultWrapA.style.display='none';
+  } else {
     var prResultWrap=document.getElementById('pr-result-wrap');
     var prResult=document.getElementById('pr-result');
     if(r.result&&r.result.trim()){
