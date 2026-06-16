@@ -4850,7 +4850,7 @@ function folderPrintRequest(r){
   // انتظر تحميل المستند ثم أضف التواقيع
   setTimeout(function(){
     var sigContainer=w.document.createElement('div');
-    sigContainer.style.cssText='display:flex;justify-content:'+(r.type==='توكيل'?'space-around':'space-between')+';margin-top:40px;padding-top:14px;border-top:1px solid #ddd;font-family:Arial,sans-serif;direction:rtl';
+    sigContainer.style.cssText='display:flex;justify-content:'+(r.type==='توكيل'?'space-around':'space-around')+';margin-top:120px;padding-top:14px;border-top:1px solid #ddd;font-family:Arial,sans-serif;direction:rtl';
     function makeSigBox(name,label,empId,sig){
       var box=w.document.createElement('div');
       box.style.cssText='text-align:center;width:180px';
@@ -4886,7 +4886,6 @@ function folderPrintRequest(r){
       sigContainer.appendChild(makeSigBox('مدير الأمن','توقيع مدير الأمن','',reqManagerSig));
     } else {
       sigContainer.appendChild(makeSigBox(r.author,'توقيع مقدم الطلب','',reqAuthorSig));
-      sigContainer.appendChild(makeSigBox((f['المشرف_المباشر']||'المشرف المباشر'),'توقيع المشرف المباشر','',null));
       sigContainer.appendChild(makeSigBox('مدير الأمن','توقيع مدير الأمن','',reqManagerSig));
     }
     var footer=w.document.querySelector('div[style*="border-top:1px solid #eee"]');
