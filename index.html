@@ -1729,17 +1729,26 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
 
             <!-- إجازة مرضية -->
             <div id="req-sick" style="display:none">
+              <div class="form-row">
+                <div class="form-gp"><label class="form-lp">اسم المنتسب</label><input class="form-ip" type="text" id="sick-name" readonly style="background:rgba(27,42,107,0.05);color:var(--text2);cursor:default"/></div>
+                <div class="form-gp"><label class="form-lp">الرقم الوظيفي</label><input class="form-ip" type="text" id="sick-id" readonly style="background:rgba(27,42,107,0.05);color:var(--text2);cursor:default"/></div>
+              </div>
               <div class="form-gp">
-                <label class="form-lp">المستند الطبي</label>
+                <label class="form-lp">تاريخ الإجازة</label>
+                <input class="form-ip" type="date" id="sick-date"/>
+              </div>
+              <div class="form-gp">
+                <label class="form-lp">صورة الإجازة المرضية</label>
                 <label style="display:flex;align-items:center;gap:12px;cursor:pointer;background:var(--dark4);border:2px dashed rgba(201,168,76,0.3);border-radius:10px;padding:22px 20px;transition:border-color .2s" onmouseover="this.style.borderColor='var(--gold2)'" onmouseout="this.style.borderColor='rgba(201,168,76,0.3)'">
-                  <input type="file" id="sick-file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="onSickFileChange(this)"/>
-                  <i class="ti ti-upload" style="font-size:28px;color:var(--gold2)"></i>
+                  <input type="file" id="sick-file" accept="image/*" style="display:none" onchange="onSickFileChange(this)"/>
+                  <i class="ti ti-camera-plus" style="font-size:28px;color:var(--gold2)"></i>
                   <div>
-                    <div style="font-size:14px;font-weight:600;color:var(--text)">اضغط لرفع الملف</div>
-                    <div style="font-size:12px;color:var(--text2);margin-top:4px">PDF أو صورة (JPG, PNG)</div>
+                    <div style="font-size:14px;font-weight:600;color:var(--text)">اضغط لرفع صورة الإجازة</div>
+                    <div style="font-size:12px;color:var(--text2);margin-top:4px">صورة (JPG, PNG)</div>
                   </div>
                 </label>
-                <div id="sick-file-name" style="display:none;margin-top:10px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gold2);display:none;align-items:center;gap:8px">
+                <div id="sick-img-preview" style="display:none;margin-top:12px;text-align:center"></div>
+                <div id="sick-file-name" style="display:none;margin-top:10px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gold2);align-items:center;gap:8px">
                   <i class="ti ti-file"></i><span id="sick-file-label"></span>
                 </div>
               </div>
@@ -4840,6 +4849,7 @@ function folderPrintRequest(r){
       '</div>'+
     '</div>'+
     '<table>'+rows+'</table>'+
+    (r.sickImage?'<div style="text-align:center;margin-bottom:18px"><div style="font-size:12px;color:#666;margin-bottom:8px;font-weight:600">صورة الإجازة المرضية</div><img src="'+r.sickImage+'" style="max-width:100%;max-height:500px;border:1px solid #ddd;border-radius:6px"/></div>':'')+
     (r.paDecidedBy?'<div style="background:#f0f7f0;border:1px solid #b2d8b2;border-radius:6px;padding:10px 14px;margin-bottom:18px;font-size:12px">'+
       '<strong style="color:#2d8a4e">'+(r.status==='موافق عليه'?'✅ تمت الموافقة':'❌ تم الرفض')+' بواسطة: '+r.paDecidedBy+'</strong>'+
       (r.paDecidedAt?' — '+r.paDecidedAt:'')+
@@ -5041,12 +5051,27 @@ function renderDashboard(){
   }
 }
 
+var sickImageData = null; // الصورة المضغوطة للإجازة المرضية
+
 function onSickFileChange(inp){
-  var name=inp.files&&inp.files[0]?inp.files[0].name:'';
+  var file=inp.files&&inp.files[0]?inp.files[0]:null;
+  if(!file) return;
+  var name=file.name||'';
   var box=document.getElementById('sick-file-name');
   var lbl=document.getElementById('sick-file-label');
-  if(name&&box&&lbl){box.style.display='flex';lbl.textContent=name;}
-  else if(box){box.style.display='none';}
+  var prev=document.getElementById('sick-img-preview');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    compressImage(e.target.result, 800, 0.5).then(function(compressed){
+      sickImageData = compressed;
+      if(box&&lbl){box.style.display='flex';lbl.textContent=name;}
+      if(prev){
+        prev.style.display='block';
+        prev.innerHTML='<img src="'+compressed+'" style="max-width:200px;max-height:200px;border-radius:8px;border:1px solid rgba(201,168,76,0.3)"/>';
+      }
+    });
+  };
+  reader.readAsDataURL(file);
 }
 
 // ===== KEYS DATA =====
@@ -6480,6 +6505,14 @@ function showReqForm(type){
     var i=document.getElementById('sal-id');if(i&&currentUser.empId)i.value=currentUser.empId;
     var jd=document.getElementById('sal-joindate');if(jd)jd.value=today;
   }
+  if(type==='إجازة مرضية'){
+    sickImageData=null;
+    var sn=document.getElementById('sick-name');if(sn&&currentUser.name)sn.value=currentUser.name;
+    var si=document.getElementById('sick-id');if(si&&currentUser.empId)si.value=currentUser.empId;
+    var sd=document.getElementById('sick-date');if(sd)sd.value=today;
+    var sp=document.getElementById('sick-img-preview');if(sp){sp.style.display='none';sp.innerHTML='';}
+    var sb=document.getElementById('sick-file-name');if(sb)sb.style.display='none';
+  }
   if(type==='Payslip'){
     var n=document.getElementById('pay-name');if(n&&currentUser.name)n.value=currentUser.name;
     var i=document.getElementById('pay-id');if(i&&currentUser.empId)i.value=currentUser.empId;
@@ -6597,11 +6630,18 @@ function submitRequest(){
     bodyLines.push('إلى: '+ijzTo);
     if(ijzReason) bodyLines.push('السبب: '+ijzReason);
   } else if(currentReqType==='إجازة مرضية'){
-    var f=document.getElementById('sick-file');
-    var fname=f&&f.files[0]?f.files[0].name:'لا يوجد ملف';
-    req.detail=fname;
-    req.fields={الملف_المرفق:fname};
-    bodyLines.push('الملف المرفق: '+fname);
+    var sickDateRaw=(document.getElementById('sick-date')||{}).value||'';
+    var sickDateAr=isoToArabicDate(sickDateRaw)||sickDateRaw;
+    if(!sickImageData){ showToast('يرجى رفع صورة الإجازة المرضية','red'); return; }
+    if(!sickDateRaw){ showToast('يرجى تحديد تاريخ الإجازة','red'); return; }
+    req.detail='إجازة مرضية بتاريخ '+sickDateAr;
+    req.fields={تاريخ_الإجازة:sickDateAr};
+    req.sickImage=sickImageData;       // الصورة المضغوطة
+    req.date=sickDateAr;               // يُصنّف بتاريخ الإجازة في المجلدات
+    req.status='مكتمل';                // لا يحتاج قبول/رفض
+    req.statusCls='status-sent';
+    req.noApproval=true;               // علامة: هذا الطلب لا يمر بالقبول
+    bodyLines.push('تاريخ الإجازة: '+sickDateAr);
   } else if(currentReqType==='تعريف بالراتب'){
     var purpose=(document.getElementById('sal-purpose')||{}).value||'';
     var salTitle=(document.getElementById('sal-title')||{}).value||'';
@@ -6622,11 +6662,22 @@ function submitRequest(){
     bodyLines.push('السنة: '+year);
   }
   req.body=bodyLines.join('\n');
+  // فحص الحجم قبل الحفظ (حد Firestore ~1 ميجا)
+  var _reqSize=0;
+  try{ _reqSize=JSON.stringify(req).length; }catch(e){}
+  if(_reqSize>950000){
+    showToast('⚠️ حجم الصورة كبير جداً — حاول بصورة أوضوح','red');
+    return;
+  }
   // حفظ في Firebase وإضافة فورية للـ cache
   fbSaveRequest(req).catch(function(e){console.error('خطأ في حفظ الطلب:',e);});
 
   updateMyReqBadge();
-  showToast('تم إرسال طلب '+currentReqType+' للمدير!','green');
+  if(currentReqType==='إجازة مرضية'){
+    showToast('✅ تم رفع الإجازة المرضية','green');
+  } else {
+    showToast('تم إرسال طلب '+currentReqType+' للمدير!','green');
+  }
   setTimeout(function(){
     hideReqForm();
     showView('my-tracking');
@@ -6863,6 +6914,7 @@ function openReq(r){
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
         formHTML+
       '</div>'+
+      (r.sickImage?'<div style="margin-top:18px;text-align:center"><div style="font-size:12px;color:var(--text2);margin-bottom:8px">صورة الإجازة المرضية</div><img src="'+r.sickImage+'" style="max-width:100%;max-height:400px;border-radius:8px;border:1px solid rgba(27,42,107,0.2)"/></div>':'')+
     '</div>';
 
   // action buttons
@@ -7033,7 +7085,7 @@ var RFA_TYPE_META={
 function getApproveRequests(){
   var seenIds=new Set();
   var allR=[];
-  function addReq(r){if(r&&r.id&&isValidReq(r)&&!seenIds.has(r.id)){seenIds.add(r.id);allR.push(r);}}
+  function addReq(r){if(r&&r.id&&isValidReq(r)&&!seenIds.has(r.id)&&!r.noApproval&&r.type!=='إجازة مرضية'){seenIds.add(r.id);allR.push(r);}}
   _allRequestsCache.forEach(addReq);
   allR.sort(function(a,b){return (b._ts||0)-(a._ts||0);});
   return allR;
