@@ -4100,7 +4100,7 @@ function buildRequestsIndex(){
   var idx={};
   var seenIds=new Set();
   var allR=_allRequestsCache.filter(function(r){if(r&&r.id&&!seenIds.has(r.id)){seenIds.add(r.id);return true;}return false;});
-  allR.filter(function(r){return r.status==='موافق عليه'||r.status==='مرفوض';}).forEach(function(r){
+  allR.filter(function(r){return r.status==='موافق عليه'||r.status==='مرفوض'||r.status==='مكتمل'||r.noApproval;}).forEach(function(r){
     var d=r.date||'غير محدد';
     var tp=r.type||'أخرى';
     if(!idx[d]) idx[d]={};
