@@ -1619,7 +1619,7 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
           <div onclick="showReqForm('إجازة مرضية')" style="background:var(--dark2);border:1px solid rgba(27,42,107,0.3);border-radius:14px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--red)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='rgba(27,42,107,0.3)';this.style.transform='translateY(0)'">
             <div style="font-size:40px;margin-bottom:12px">🏥</div>
             <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">إجازة مرضية</div>
-            <div style="font-size:12px;color:var(--text2);line-height:1.6">رفع طلب إجازة مرضية مع المستندات الطبية</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6">رفع صورة الإجازة المرضية مع تحديد تاريخها</div>
           </div>
           <div onclick="showReqForm('Payslip')" style="background:var(--dark2);border:1px solid rgba(27,42,107,0.3);border-radius:14px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--gold2)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='rgba(27,42,107,0.3)';this.style.transform='translateY(0)'">
             <div style="font-size:40px;margin-bottom:12px">📄</div>
@@ -4834,14 +4834,14 @@ function folderPrintRequest(r){
   var now=new Date();
   var dateStr=String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
   var w=window.open('','_blank','width=800,height:600');
-  w.document.write('<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>طلب '+escHtml(r.type||'')+'</title>'+
+  w.document.write('<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>'+(r.type==='إجازة مرضية'?'رفع':'طلب')+' '+escHtml(r.type||'')+'</title>'+
     '<style>body{font-family:Arial,sans-serif;direction:rtl;padding:30px;color:#1a1a1a;max-width:720px;margin:0 auto}'+
     'h1{font-size:18px;margin:0}table{width:100%;border-collapse:collapse;margin-bottom:18px}'+
     '.sig{display:flex;justify-content:space-between;margin-top:40px;padding-top:14px;border-top:1px solid #ddd}'+
     '.sig-box{text-align:center;width:180px}.sig-line{border-bottom:1px solid #999;margin-bottom:6px;height:36px}.sig-label{font-size:12px;color:#666}'+
     '@media print{body{padding:15px}}</style></head><body>'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B2A6B;padding-bottom:12px;margin-bottom:20px">'+
-      '<div><h1>'+typeIcons[r.type]+' طلب '+escHtml(r.type||'')+'</h1>'+
+      '<div><h1>'+typeIcons[r.type]+' '+(r.type==='إجازة مرضية'?'رفع':'طلب')+' '+escHtml(r.type||'')+'</h1>'+
       '<div style="font-size:12px;color:#666;margin-top:4px">رقم الطلب: '+escHtml(r.id||'')+'</div></div>'+
       '<div style="text-align:left;font-size:11px;color:#666;line-height:1.8">'+
         '<div>تاريخ الطباعة: '+dateStr+'</div>'+
@@ -6738,7 +6738,7 @@ function openReq(r){
   var statusColor=r.status==='موافق عليه'?'#3FB950':r.status==='مرفوض'?'#F85149':'#C9A84C';
   var statusIcon=r.status==='موافق عليه'?'✅':r.status==='مرفوض'?'❌':'⏳';
 
-  document.getElementById('rdm-title').textContent=icon+' طلب '+r.type;
+  document.getElementById('rdm-title').textContent=icon+' '+(r.type==='إجازة مرضية'?'رفع':'طلب')+' '+r.type;
   document.getElementById('rdm-subtitle').textContent='تقدّم به: '+r.author+(r.empId?' — '+r.empId:'')+(r.id?' | '+r.id:'');
 
   // شريط المعلومات الزمنية
@@ -7382,7 +7382,7 @@ function renderProfileRequests(){
     return '<div onclick="openReq(r)" style="background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px;margin-bottom:10px;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor=\'rgba(107,143,214,0.4)\'" onmouseout="this.style.borderColor=\'rgba(27,42,107,0.2)\'">'+
       '<div style="font-size:24px">'+(typeIcons[r.type]||'📄')+'</div>'+
       '<div style="flex:1">'+
-        '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">طلب '+escHtml(r.type||'')+'</div>'+
+        '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">'+(r.type==='إجازة مرضية'?'رفع':'طلب')+' '+escHtml(r.type||'')+'</div>'+
         '<div style="font-size:12px;color:var(--text2)">'+escHtml(r.date||'')+' — '+escHtml(r.time||'')+'</div>'+
       '</div>'+
       '<div style="font-size:12px;font-weight:700;color:'+sc+'">'+escHtml(r.status||'')+'</div>'+
