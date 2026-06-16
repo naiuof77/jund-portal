@@ -4840,7 +4840,6 @@ function folderPrintRequest(r){
       (r.paDecidedAt?' — '+r.paDecidedAt:'')+
     '</div>':'')+
     (r.rejectReason?'<div style="background:#fff0f0;border:1px solid #f5c6c6;border-radius:6px;padding:10px 14px;margin-bottom:18px;font-size:12px;color:#c0392b"><strong>سبب الرفض:</strong> '+escHtml(r.rejectReason)+'</div>':'')+
-    '<div style="text-align:center;font-size:10px;color:#aaa;margin-top:20px;border-top:1px solid #eee;padding-top:10px">JOND | AMAAD — نظام الأمن المتكامل</div>'+
     '</body></html>');
   // حقن التواقيع بعد كتابة الـ HTML
   var reqAuthorSig=(r.authorSig||getUserSignature(r.author));
@@ -4850,7 +4849,7 @@ function folderPrintRequest(r){
   // انتظر تحميل المستند ثم أضف التواقيع
   setTimeout(function(){
     var sigContainer=w.document.createElement('div');
-    sigContainer.style.cssText='display:flex;justify-content:'+(r.type==='توكيل'?'space-around':'space-around')+';margin-top:120px;padding-top:14px;border-top:1px solid #ddd;font-family:Arial,sans-serif;direction:rtl';
+    sigContainer.style.cssText='position:fixed;bottom:25px;left:30px;right:30px;display:flex;justify-content:space-around;padding-top:14px;border-top:1px solid #ddd;font-family:Arial,sans-serif;direction:rtl';
     function makeSigBox(name,label,empId,sig){
       var box=w.document.createElement('div');
       box.style.cssText='text-align:center;width:180px';
@@ -4888,9 +4887,8 @@ function folderPrintRequest(r){
       sigContainer.appendChild(makeSigBox(r.author,'توقيع مقدم الطلب','',reqAuthorSig));
       sigContainer.appendChild(makeSigBox('مدير الأمن','توقيع مدير الأمن','',reqManagerSig));
     }
-    var footer=w.document.querySelector('div[style*="border-top:1px solid #eee"]');
-    if(footer) footer.parentNode.insertBefore(sigContainer,footer);
-    else w.document.body.appendChild(sigContainer);
+    // التوقيعات مثبّتة أسفل الصفحة
+    w.document.body.appendChild(sigContainer);
     w.print();
   },600);
 }
