@@ -2704,6 +2704,14 @@ function togglePrintPreview(){
     var prResultWrapA=document.getElementById('pr-result-wrap');
     if(prResultWrapA) prResultWrapA.style.display='none';
   } else {
+    // تفاصيل التقرير + الإجراءات المتخذة (كانت مفقودة في المعاينة)
+    document.getElementById('pr-date').style.display='';
+    document.getElementById('pr-time').style.display='';
+    document.getElementById('pr-body').textContent=r.body||'';
+    var prActions=document.getElementById('pr-actions');
+    var prActionsWrap=document.getElementById('pr-actions-wrap');
+    if(prActions) prActions.textContent=r.actions||'—';
+    if(prActionsWrap) prActionsWrap.style.display='block';
     var prResultWrap=document.getElementById('pr-result-wrap');
     var prResult=document.getElementById('pr-result');
     if(r.result&&r.result.trim()){
