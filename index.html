@@ -3807,18 +3807,25 @@ function sendReport(){
     if(!aSubject.trim()){showToast('يرجى كتابة موضوع الإفادة','red');return;}
     if(!aBody.trim()){showToast('يرجى كتابة نص الإفادة','red');return;}
     var aDate=isoToArabicDate(aDateRaw)||aDateRaw;
+    // قراءة درجة الأهمية المختارة
+    var afPriEl = document.querySelector('.priority-btn.slow,.priority-btn.smed,.priority-btn.shi,.priority-btn.sl,.priority-btn.sm,.priority-btn.sh');
+    var afPri='عادي', afPriColor='var(--green)';
+    var pl=document.getElementById('pri-low'), pm=document.getElementById('pri-med'), ph2=document.getElementById('pri-high');
+    if(ph2 && ph2.className.indexOf('sh')>-1){ afPri='عاجل'; afPriColor='var(--red)'; }
+    else if(pm && pm.className.indexOf('sm')>-1){ afPri='متوسط'; afPriColor='var(--gold2)'; }
+    else if(pl && pl.className.indexOf('sl')>-1){ afPri='عادي'; afPriColor='var(--green)'; }
     newReport={
       id:getNextSerial('RPT'),
       title:'إفادة — '+aSubject,
       type:'افادة',typeCls:'badge-daily',
       date:aDate,time:aTime,
-      priority:'عادي',priorityColor:'var(--blue)',
+      priority:afPri,priorityColor:afPriColor,
       location:document.getElementById('report-location').value||'—',
       author:currentUser.name,empId:currentUser.empId||'—',
       status:'مُرسل',statusCls:'status-sent',
       body:aBody,actions:'—',result:'',rec:'—',
       owner:currentUser.name,images:[],
-      afada:{subject:aSubject,body:aBody,date:aDate,time:aTime}
+      afada:{subject:aSubject,body:aBody,date:aDate,time:aTime,priority:afPri}
     };
   } else {
     var t=document.getElementById('report-title-input')?document.getElementById('report-title-input').value.trim():'';
