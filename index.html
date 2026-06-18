@@ -164,12 +164,24 @@ body.sidebar-open .sidebar-overlay{opacity:1;visibility:visible}
 .content-view.active .stat-card:nth-child(2){animation-delay:.10s}
 .content-view.active .stat-card:nth-child(3){animation-delay:.16s}
 .content-view.active .stat-card:nth-child(4){animation-delay:.22s}
-.content-view.active .report-item{animation:riseIn .4s ease both}
-.content-view.active .report-item:nth-child(1){animation-delay:.04s}
-.content-view.active .report-item:nth-child(2){animation-delay:.09s}
-.content-view.active .report-item:nth-child(3){animation-delay:.14s}
-.content-view.active .report-item:nth-child(4){animation-delay:.19s}
-.content-view.active .report-item:nth-child(5){animation-delay:.24s}
+/* عناصر القوائم (تُبنى ديناميكياً) — تظهر بتتابع لطيف دائماً */
+.report-item,.folder-report-item{animation:riseIn .35s ease both}
+.report-item:nth-child(1),.folder-report-item:nth-child(1){animation-delay:.03s}
+.report-item:nth-child(2),.folder-report-item:nth-child(2){animation-delay:.07s}
+.report-item:nth-child(3),.folder-report-item:nth-child(3){animation-delay:.11s}
+.report-item:nth-child(4),.folder-report-item:nth-child(4){animation-delay:.15s}
+.report-item:nth-child(5),.folder-report-item:nth-child(5){animation-delay:.19s}
+.report-item:nth-child(6),.folder-report-item:nth-child(6){animation-delay:.23s}
+.report-item:nth-child(7),.folder-report-item:nth-child(7){animation-delay:.27s}
+.report-item:nth-child(8),.folder-report-item:nth-child(8){animation-delay:.31s}
+/* بطاقات الطلبات */
+.req-card{animation:riseIn .35s ease both}
+.req-card:nth-child(1){animation-delay:.03s}
+.req-card:nth-child(2){animation-delay:.08s}
+.req-card:nth-child(3){animation-delay:.13s}
+.req-card:nth-child(4){animation-delay:.18s}
+.req-card:nth-child(5){animation-delay:.23s}
+.req-card:nth-child(6){animation-delay:.28s}
 .content-view.active .rtype-card{animation:riseIn .4s ease both}
 .content-view.active .rtype-card:nth-child(1){animation-delay:.03s}
 .content-view.active .rtype-card:nth-child(2){animation-delay:.07s}
@@ -187,7 +199,7 @@ body.sidebar-open .sidebar-overlay{opacity:1;visibility:visible}
 
 /* احترام تفضيل تقليل الحركة (إمكانية وصول) */
 @media (prefers-reduced-motion:reduce){
-  *,.content-view.active,.content-view.active .stat-card,.content-view.active .report-item,.content-view.active .rtype-card{animation:none!important;transition:none!important}
+  *,.content-view.active,.content-view.active .stat-card,.report-item,.folder-report-item,.req-card,.content-view.active .rtype-card{animation:none!important;transition:none!important}
 }
 
 .page-title{font-family:"Cairo",sans-serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
