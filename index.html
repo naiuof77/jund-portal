@@ -362,6 +362,7 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
     <div class="modal-actions">
       <button class="btn-outline" onclick="closeModal()"><i class="ti ti-x"></i> إغلاق</button>
       <button id="modal-edit-draft-btn" style="display:none;padding:11px 20px;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.35);border-radius:8px;color:var(--gold2);font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;align-items:center;gap:8px"><i class="ti ti-pencil"></i> متابعة التعديل</button>
+      <button id="modal-delete-draft-btn" style="display:none;padding:11px 20px;background:rgba(224,49,49,0.12);border:1px solid rgba(224,49,49,0.35);border-radius:8px;color:#e03131;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;align-items:center;gap:8px"><i class="ti ti-trash"></i> حذف المسودة</button>
       <button id="modal-admin-edit-btn" style="display:none;padding:11px 20px;background:rgba(163,113,247,0.12);border:1px solid rgba(163,113,247,0.35);border-radius:8px;color:var(--purple);font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;gap:8px;align-items:center" onclick="closeModal();openEditInForm(currentReport)"><i class="ti ti-edit"></i> تعديل التقرير</button>
       <button class="btn-print" onclick="togglePrintPreview()"><i class="ti ti-eye"></i> معاينة الطباعة</button>
       <button class="btn-send" onclick="printCurrentReport()"><i class="ti ti-printer"></i> طباعة التقرير</button>
@@ -2443,14 +2444,24 @@ function openReport(r){
   }
   document.getElementById('modal-print-wrap').style.display='none';
 
-  // زر متابعة التعديل للمسودات
+  // زر متابعة التعديل + حذف المسودة
   var editDraftBtn = document.getElementById('modal-edit-draft-btn');
+  var delDraftBtn = document.getElementById('modal-delete-draft-btn');
+  var isMyDraft = r.isDraft && r.author===currentUser.name;
   if(editDraftBtn){
-    if(r.isDraft && r.author===currentUser.name){
+    if(isMyDraft){
       editDraftBtn.style.display='flex';
       editDraftBtn.onclick=function(){ closeModal(); continueDraft(r); };
     } else {
       editDraftBtn.style.display='none';
+    }
+  }
+  if(delDraftBtn){
+    if(isMyDraft){
+      delDraftBtn.style.display='flex';
+      delDraftBtn.onclick=function(){ deleteDraft(r); };
+    } else {
+      delDraftBtn.style.display='none';
     }
   }
 
@@ -3571,6 +3582,26 @@ function removeIncidentImage(idx){
 
 
 // ===== DRAFT SYSTEM =====
+
+function deleteDraft(r){
+  if(!r || !r.id) return;
+  if(!confirm('هل تريد حذف هذه المسودة نهائياً؟')) return;
+  // حذف من Firebase
+  fbDeleteReport(r.id).catch(function(e){ console.error('خطأ في حذف المسودة:',e); });
+  // حذف من localStorage المحلي
+  try{
+    var key='jund_reports_'+currentUser.name;
+    var saved=JSON.parse(localStorage.getItem(key)||'[]');
+    saved=saved.filter(function(x){return x.id!==r.id;});
+    localStorage.setItem(key, JSON.stringify(saved));
+  }catch(e){}
+  // إزالة من الـ cache فوراً
+  _myReportsCache = _myReportsCache.filter(function(x){return x.id!==r.id;});
+  closeModal();
+  showToast('تم حذف المسودة','green');
+  renderMyReports();
+  renderDashboard();
+}
 
 function continueDraft(r){
   // احذف المسودة القديمة
