@@ -87,6 +87,49 @@ body.mobile-mode #btn-mobile-toggle .ti-device-mobile{display:inline-block}
 body.mobile-mode #btn-mobile-toggle .ti-device-laptop{display:none}
 #btn-mobile-toggle .ti-device-mobile{display:none}
 #btn-mobile-toggle .ti-device-laptop{display:inline-block}
+
+/* ===== التجاوب التلقائي مع شاشات الجوال ===== */
+@media (max-width:768px){
+  .topbar{padding:0 12px;height:58px;gap:8px}
+  .topbar-logos img{height:36px}
+  .topbar-sep{display:none}
+  .topbar-logos span{display:none}
+  .topbar-user{gap:6px}
+  .topbar-user>div:first-child{display:none}
+  .user-avatar{width:32px;height:32px;font-size:13px}
+  .topbar-user button{padding:7px 10px!important;font-size:12px!important}
+  .topbar-user button span{display:none}
+  .main-content{padding:14px;padding-bottom:40px}
+  .content-view{padding:0}
+  .page-title{font-size:18px}
+  .page-subtitle{font-size:12px}
+  /* كل الشبكات تتحول لعمود أو عمودين */
+  .stats-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px;margin-bottom:18px}
+  .form-row{grid-template-columns:1fr!important;gap:10px}
+  .folder-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px}
+  .ftype-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px}
+  /* الشبكات المضمّنة (inline grids) */
+  .main-content [style*="grid-template-columns:repeat(4,1fr)"]{grid-template-columns:repeat(2,1fr)!important}
+  .main-content [style*="grid-template-columns:repeat(3,1fr)"]{grid-template-columns:repeat(2,1fr)!important}
+  .main-content [style*="grid-template-columns:1.3fr 1fr"]{grid-template-columns:1fr!important}
+  .main-content [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  .report-item{padding:10px 12px;gap:8px}
+  .report-form{padding:0}
+  .login-card{width:94vw;padding:26px 18px}
+  .modal-box{width:95vw;max-height:92vh;margin:4vh auto}
+  .sidebar{width:80vw;max-width:300px}
+  /* الأزرار في النوافذ تلتف بدل ما تتزاحم */
+  .modal-actions{flex-wrap:wrap;gap:8px}
+  .modal-actions button{flex:1;min-width:120px;justify-content:center}
+}
+@media (max-width:440px){
+  .stats-grid{grid-template-columns:1fr!important}
+  .main-content [style*="grid-template-columns:repeat(4,1fr)"]{grid-template-columns:1fr!important}
+  .main-content [style*="grid-template-columns:repeat(3,1fr)"]{grid-template-columns:1fr!important}
+  .folder-grid{grid-template-columns:1fr!important}
+  .ftype-grid{grid-template-columns:1fr!important}
+  .page-title{font-size:16px}
+}
 .topbar-logos{display:flex;align-items:center;gap:14px}
 .topbar-sep{width:1px;height:30px;background:rgba(27,42,107,0.3)}
 .topbar-user{display:flex;align-items:center;gap:12px}
@@ -456,7 +499,6 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
       </div>
       <div class="user-avatar" id="topbar-avatar">م</div>
       <button onclick="toggleLightMode()" id="theme-toggle-btn" style="background:transparent;border:1px solid rgba(27,42,107,0.3);border-radius:8px;padding:8px 14px;color:var(--text2);font-size:13px;cursor:pointer;font-family:Tajawal,sans-serif;display:flex;align-items:center;gap:6px" title="تبديل الوضع"><i class="ti ti-sun" id="theme-icon"></i></button>
-      <button onclick="toggleMobileMode()" id="btn-mobile-toggle" style="background:transparent;border:1px solid rgba(27,42,107,0.3);border-radius:8px;padding:8px 14px;color:var(--text2);font-size:15px;cursor:pointer;display:flex;align-items:center;gap:6px" title="تبديل وضع الجوال / الكمبيوتر"><i class="ti ti-device-mobile"></i><i class="ti ti-device-laptop"></i></button>
       <button onclick="doLogout()" style="background:transparent;border:1px solid rgba(27,42,107,0.3);border-radius:8px;padding:8px 16px;color:var(--text2);font-size:13px;cursor:pointer;font-family:Tajawal,sans-serif"><i class="ti ti-logout"></i> خروج</button>
     </div>
   </div>
