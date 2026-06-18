@@ -153,11 +153,48 @@ body.sidebar-open .sidebar-overlay{opacity:1;visibility:visible}
 .sidebar-item.active{background:rgba(27,42,107,0.1);color:#6B8FD6;border-right-color:var(--navy);font-weight:600}
 .sidebar-item i{font-size:17px}
 .main-content{flex:1;padding:28px;padding-bottom:44px;overflow-y:auto;width:100%}
-.content-view{display:none}.content-view.active{display:block}
+.content-view{display:none}
+.content-view.active{display:block;animation:viewFadeIn .35s ease both}
+@keyframes viewFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ظهور متتابع لطيف للبطاقات والعناصر */
+@keyframes riseIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.content-view.active .stat-card{animation:riseIn .4s ease both}
+.content-view.active .stat-card:nth-child(1){animation-delay:.04s}
+.content-view.active .stat-card:nth-child(2){animation-delay:.10s}
+.content-view.active .stat-card:nth-child(3){animation-delay:.16s}
+.content-view.active .stat-card:nth-child(4){animation-delay:.22s}
+.content-view.active .report-item{animation:riseIn .4s ease both}
+.content-view.active .report-item:nth-child(1){animation-delay:.04s}
+.content-view.active .report-item:nth-child(2){animation-delay:.09s}
+.content-view.active .report-item:nth-child(3){animation-delay:.14s}
+.content-view.active .report-item:nth-child(4){animation-delay:.19s}
+.content-view.active .report-item:nth-child(5){animation-delay:.24s}
+.content-view.active .rtype-card{animation:riseIn .4s ease both}
+.content-view.active .rtype-card:nth-child(1){animation-delay:.03s}
+.content-view.active .rtype-card:nth-child(2){animation-delay:.07s}
+.content-view.active .rtype-card:nth-child(3){animation-delay:.11s}
+.content-view.active .rtype-card:nth-child(4){animation-delay:.15s}
+.content-view.active .rtype-card:nth-child(5){animation-delay:.19s}
+.content-view.active .rtype-card:nth-child(6){animation-delay:.23s}
+
+/* نقرة لطيفة على الأزرار */
+.btn-primary:active,.btn-send:active,.btn-print:active,.menu-toggle-btn:active{transform:scale(0.96)}
+
+/* تحسين انزلاق عناصر القائمة عند المرور */
+.sidebar-item{position:relative}
+.sidebar-item:hover{padding-right:22px}
+
+/* احترام تفضيل تقليل الحركة (إمكانية وصول) */
+@media (prefers-reduced-motion:reduce){
+  *,.content-view.active,.content-view.active .stat-card,.content-view.active .report-item,.content-view.active .rtype-card{animation:none!important;transition:none!important}
+}
+
 .page-title{font-family:"Cairo",sans-serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
 .page-subtitle{font-size:13px;color:var(--text2);margin-bottom:28px}
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
-.stat-card{background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:12px;padding:18px}
+.stat-card{background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:12px;padding:18px;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.stat-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,0.25);border-color:rgba(27,42,107,0.4)}
 .stat-label{font-size:11px;color:var(--text2);margin-bottom:6px}
 .stat-value{font-size:26px;font-weight:700;color:var(--text)}
 .stat-change{font-size:11px;margin-top:4px}
