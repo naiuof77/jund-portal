@@ -115,6 +115,12 @@ body.mobile-mode #btn-mobile-toggle .ti-device-laptop{display:none}
   .main-content [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
   .report-item{padding:10px 12px;gap:8px}
   .report-form{padding:0}
+  /* أزرار درجة الأهمية تبقى في صف واحد متساوٍ */
+  .priority-group{display:flex;gap:6px}
+  .priority-group .priority-btn{flex:1;padding:11px 4px;font-size:13px}
+  /* حقول النماذج بعرض كامل ومريحة */
+  .form-ip{font-size:14px}
+  .form-gp{margin-bottom:14px}
   .login-card{width:94vw;padding:26px 18px}
   .modal-box{width:95vw;max-height:92vh;margin:4vh auto}
   .sidebar{width:80vw;max-width:300px}
@@ -651,7 +657,7 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
               <div class="form-gp"><label class="form-lp">الموقع</label><input class="form-ip" type="text" placeholder="اكتب الموقع..." id="report-location"/></div>
               <div class="form-gp"><label class="form-lp">عنوان التقرير</label><input class="form-ip" type="text" placeholder="عنوان واضح للتقرير" id="report-title-input"/></div>
             </div>
-            <div class="form-row">
+            <div class="form-row" id="general-datetime-row">
               <div class="form-gp"><label class="form-lp">التاريخ</label><input class="form-ip" type="date" id="report-date"/></div>
               <div class="form-gp"><label class="form-lp">الوقت</label><input class="form-ip" type="time" id="report-time"/></div>
             </div>
@@ -5784,6 +5790,9 @@ function togglePatrolForm(val){
   var needsAfada = (val==='افادة');
   if(incDet) incDet.style.display = needsIncident ? 'block' : 'none';
   if(afadaDet) afadaDet.style.display = needsAfada ? 'block' : 'none';
+  // إخفاء التاريخ/الوقت العام عند الإفادة (لها تاريخ ووقت خاص بها)
+  var genDT=document.getElementById('general-datetime-row');
+  if(genDT) genDT.style.display = needsAfada ? 'none' : 'grid';
   var locTitleRow = document.getElementById('location-title-row');
   if(locTitleRow) locTitleRow.style.display = needsAfada ? 'none' : 'grid';
   document.getElementById('incident-attach-btn').style.display = needsIncident ? 'flex' : 'none';
