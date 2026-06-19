@@ -199,7 +199,7 @@ body.sidebar-open .sidebar-overlay{opacity:1;visibility:visible}
 
 /* احترام تفضيل تقليل الحركة (إمكانية وصول) */
 @media (prefers-reduced-motion:reduce){
-  *,.content-view.active,.content-view.active .stat-card,.report-item,.folder-report-item,.req-card,.form-appear,.content-view.active .rtype-card{animation:none!important;transition:none!important}
+  *,.content-view.active,.content-view.active .stat-card,.report-item,.folder-report-item,.req-card,.form-appear,.kcard-anim,.content-view.active .rtype-card{animation:none!important;transition:none!important}
 }
 
 .page-title{font-family:"Cairo",sans-serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
@@ -277,6 +277,10 @@ body.sidebar-open .sidebar-overlay{opacity:1;visibility:visible}
 .report-form{background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:12px;padding:28px}
 @keyframes formIn{from{opacity:0;transform:translateY(16px) scale(0.99)}to{opacity:1;transform:translateY(0) scale(1)}}
 .form-appear{animation:formIn .38s cubic-bezier(.22,.61,.36,1) both}
+.kcard-anim{animation:riseIn .4s ease both}
+.kcard-anim:nth-child(1){animation-delay:.05s}
+.kcard-anim:nth-child(2){animation-delay:.12s}
+.kcard-anim:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,0,0,0.22)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .form-gp{margin-bottom:18px}
 .form-lp{display:block;font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:500;letter-spacing:.5px}
@@ -979,12 +983,12 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
             <div id="keys-type-selector" style="margin-bottom:20px">
               <div style="font-size:13px;font-weight:700;color:var(--gold2);margin-bottom:14px;display:flex;align-items:center;gap:7px"><i class="ti ti-key"></i> اختر نوع النموذج</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div onclick="showKeysSubForm('handover')" style="cursor:pointer;background:rgba(201,168,76,0.06);border:2px solid rgba(201,168,76,0.3);border-radius:12px;padding:20px;text-align:center;transition:all .2s" id="keys-card-handover" onmouseover="this.style.borderColor='var(--gold2)'" onmouseout="if(!this.classList.contains('active'))this.style.borderColor='rgba(201,168,76,0.3)'">
+                <div onclick="showKeysSubForm('handover')" class="kcard-anim" style="cursor:pointer;background:rgba(201,168,76,0.06);border:2px solid rgba(201,168,76,0.3);border-radius:12px;padding:20px;text-align:center;transition:all .2s" id="keys-card-handover" onmouseover="this.style.borderColor='var(--gold2)'" onmouseout="if(!this.classList.contains('active'))this.style.borderColor='rgba(201,168,76,0.3)'">
                   <div style="font-size:28px;margin-bottom:8px">🔑</div>
                   <div style="font-size:14px;font-weight:700;color:var(--gold2)">استلام وتسليم المفاتيح</div>
                   <div style="font-size:11px;color:var(--text2);margin-top:4px">الـ١٨ مفتاح — بين مساعدي المشرف</div>
                 </div>
-                <div onclick="showKeysSubForm('doors')" style="cursor:pointer;background:rgba(88,166,255,0.05);border:2px solid rgba(88,166,255,0.2);border-radius:12px;padding:20px;text-align:center;transition:all .2s" id="keys-card-doors" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="if(!this.classList.contains('active'))this.style.borderColor='rgba(88,166,255,0.2)'">
+                <div onclick="showKeysSubForm('doors')" class="kcard-anim" style="cursor:pointer;background:rgba(88,166,255,0.05);border:2px solid rgba(88,166,255,0.2);border-radius:12px;padding:20px;text-align:center;transition:all .2s" id="keys-card-doors" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="if(!this.classList.contains('active'))this.style.borderColor='rgba(88,166,255,0.2)'">
                   <div style="font-size:28px;margin-bottom:8px">🚪</div>
                   <div style="font-size:14px;font-weight:700;color:var(--blue)">فتح وإقفال الأبواب</div>
                   <div style="font-size:11px;color:var(--text2);margin-top:4px">تسجيل أوقات الفتح والإغلاق</div>
