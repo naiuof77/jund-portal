@@ -546,11 +546,14 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
 <!-- PORTAL -->
 <div id="portal-page" class="page">
   <div class="topbar">
-    <div class="topbar-logos">
-      <img id="tb-jond" style="height:52px;width:auto;object-fit:contain" alt="JOND جُند"/>
-      <div class="topbar-sep"></div>
-      <img id="tb-amaad" style="height:52px;width:auto;object-fit:contain" alt="AMAAD"/>
-      <span style="font-size:11px;color:var(--text2);margin-right:6px">| بوابة الأمن</span>
+    <div style="display:flex;align-items:center;gap:14px">
+      <button class="menu-toggle-btn" id="menu-toggle" onclick="toggleSidebar()" title="القائمة"><i class="ti ti-menu-2"></i></button>
+      <div class="topbar-logos">
+        <img id="tb-jond" style="height:52px;width:auto;object-fit:contain" alt="JOND جُند"/>
+        <div class="topbar-sep"></div>
+        <img id="tb-amaad" style="height:52px;width:auto;object-fit:contain" alt="AMAAD"/>
+        <span style="font-size:11px;color:var(--text2);margin-right:6px">| بوابة الأمن</span>
+      </div>
     </div>
     <div class="topbar-user">
       <div style="text-align:right">
@@ -560,7 +563,6 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
       <div class="user-avatar" id="topbar-avatar">م</div>
       <button onclick="toggleLightMode()" id="theme-toggle-btn" style="background:transparent;border:1px solid rgba(27,42,107,0.3);border-radius:8px;padding:8px 14px;color:var(--text2);font-size:13px;cursor:pointer;font-family:Tajawal,sans-serif;display:flex;align-items:center;gap:6px" title="تبديل الوضع"><i class="ti ti-sun" id="theme-icon"></i></button>
       <button onclick="doLogout()" style="background:transparent;border:1px solid rgba(27,42,107,0.3);border-radius:8px;padding:8px 16px;color:var(--text2);font-size:13px;cursor:pointer;font-family:Tajawal,sans-serif"><i class="ti ti-logout"></i> خروج</button>
-      <button class="menu-toggle-btn" id="menu-toggle" onclick="toggleSidebar()" title="القائمة"><i class="ti ti-menu-2"></i></button>
     </div>
   </div>
   <div class="portal-body">
