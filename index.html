@@ -199,7 +199,7 @@ body.sidebar-open .sidebar-overlay{opacity:1;visibility:visible}
 
 /* احترام تفضيل تقليل الحركة (إمكانية وصول) */
 @media (prefers-reduced-motion:reduce){
-  *,.content-view.active,.content-view.active .stat-card,.report-item,.folder-report-item,.req-card,.content-view.active .rtype-card{animation:none!important;transition:none!important}
+  *,.content-view.active,.content-view.active .stat-card,.report-item,.folder-report-item,.req-card,.form-appear,.content-view.active .rtype-card{animation:none!important;transition:none!important}
 }
 
 .page-title{font-family:"Cairo",sans-serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
@@ -275,6 +275,8 @@ body.sidebar-open .sidebar-overlay{opacity:1;visibility:visible}
 .btn-ai{padding:10px 20px;background:rgba(163,113,247,0.15);border:1px solid rgba(163,113,247,0.35);border-radius:8px;color:var(--purple);font-family:"Cairo",sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px}
 /* REPORT FORM */
 .report-form{background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:12px;padding:28px}
+@keyframes formIn{from{opacity:0;transform:translateY(16px) scale(0.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+.form-appear{animation:formIn .38s cubic-bezier(.22,.61,.36,1) both}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .form-gp{margin-bottom:18px}
 .form-lp{display:block;font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:500;letter-spacing:.5px}
@@ -5773,7 +5775,11 @@ function selectReportType(type){
 
   // إظهار النموذج وإخفاء المحدد
   document.getElementById('report-type-selector').style.display='none';
-  document.getElementById('report-form-step').style.display='block';
+  var rfStep=document.getElementById('report-form-step');
+  rfStep.style.display='block';
+  rfStep.classList.remove('form-appear');
+  void rfStep.offsetWidth; // إعادة تشغيل الأنيميشن
+  rfStep.classList.add('form-appear');
   document.getElementById('new-report-subtitle').textContent='يُرسل التقرير مباشرة لمدير الأمن';
 
   // بانر النوع المحدد
@@ -6601,7 +6607,11 @@ var currentReqType='';
 function showReqForm(type){
   currentReqType=type;
   document.getElementById('req-cards').style.display='none';
-  document.getElementById('req-form-wrap').style.display='block';
+  var rfw=document.getElementById('req-form-wrap');
+  rfw.style.display='block';
+  rfw.classList.remove('form-appear');
+  void rfw.offsetWidth;
+  rfw.classList.add('form-appear');
   var icons={استئذان:'🚪',توكيل:'📋',إجازة:'🏖️','تعريف بالراتب':'💰','إجازة مرضية':'🏥',Payslip:'📄'};
   var titles={'إجازة مرضية':'🏥  رفع ملف عن طريق صحتي'};
   document.getElementById('req-form-title').textContent=titles[type]||((icons[type]||'')+'  طلب '+type);
