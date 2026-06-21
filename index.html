@@ -262,17 +262,6 @@ body.sidebar-open .sidebar-overlay{opacity:1;visibility:visible}
 .btn-outline:hover{background:var(--dark4);color:var(--text)}
 .btn-print{padding:11px 20px;background:rgba(27,42,107,0.12);border:1px solid rgba(27,42,107,0.3);border-radius:8px;color:#6B8FD6;font-family:"Cairo",sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .2s}
 .btn-print:hover{background:rgba(27,42,107,0.22)}
-/* AI PANEL */
-.ai-panel{background:var(--dark3);border:1px solid rgba(163,113,247,0.3);border-radius:12px;padding:22px;margin-bottom:22px}
-.ai-badge{background:rgba(163,113,247,0.15);border:1px solid rgba(163,113,247,0.3);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--purple)}
-.ai-textarea{width:100%;background:var(--dark4);border:1px solid rgba(163,113,247,0.2);border-radius:8px;padding:12px 14px;color:var(--text);font-family:"Tajawal",sans-serif;font-size:14px;outline:none;direction:rtl;resize:none;min-height:80px;line-height:1.7}
-.ai-result{background:var(--dark4);border:1px solid rgba(163,113,247,0.2);border-radius:8px;padding:16px;margin-top:12px;font-size:14px;line-height:1.8;color:var(--text);display:none}
-.ai-typing{display:flex;gap:5px;align-items:center;padding:8px 0}
-.ai-dot{width:7px;height:7px;border-radius:50%;background:var(--purple);animation:ap 1s infinite}
-.ai-dot:nth-child(2){animation-delay:.2s}.ai-dot:nth-child(3){animation-delay:.4s}
-@keyframes ap{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.2)}}
-.ai-chip{padding:6px 14px;background:rgba(163,113,247,0.08);border:1px solid rgba(163,113,247,0.2);border-radius:20px;font-size:12px;color:var(--purple);cursor:pointer;margin:4px;display:inline-block}
-.btn-ai{padding:10px 20px;background:rgba(163,113,247,0.15);border:1px solid rgba(163,113,247,0.35);border-radius:8px;color:var(--purple);font-family:"Cairo",sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px}
 /* REPORT FORM */
 .report-form{background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:12px;padding:28px}
 @keyframes formIn{from{opacity:0;transform:translateY(16px) scale(0.99)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -691,16 +680,6 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
           </div>
 
         <div class="page-subtitle">يُرسل التقرير مباشرة لمدير الأمن</div>
-        <!-- AI panel — يظهر فقط للواقعة والإفادة -->
-        <div class="ai-panel" id="ai-panel-wrap" style="display:none">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><i class="ti ti-robot" style="font-size:20px;color:var(--purple)"></i><span style="font-size:14px;font-weight:600;color:var(--text)">مساعد صياغة التقارير</span><span class="ai-badge">ذكاء اصطناعي</span></div>
-          <div style="font-size:13px;color:var(--text2);margin-bottom:12px">صف ما حدث بكلامك العادي وسيصيغ المساعد تقريراً أمنياً احترافياً</div>
-          <div><span class="ai-chip" onclick="fillAiPrompt('شخص غريب يتجول بالقرب من السياج الخارجي ورفض التعريف بنفسه')">شخص مشبوه</span><span class="ai-chip" onclick="fillAiPrompt('اكتشفت عطل في كاميرا المراقبة رقم 7 عند المدخل الجنوبي')">عطل كاميرا</span><span class="ai-chip" onclick="fillAiPrompt('سيارة مجهولة وقفت أمام البوابة الرئيسية لأكثر من ساعة')">سيارة مجهولة</span><span class="ai-chip" onclick="fillAiPrompt('انتهت نوبة الصباح بشكل طبيعي ولا يوجد حوادث')">تقرير هادئ</span></div>
-          <textarea class="ai-textarea" id="ai-prompt" placeholder="اكتب ما حدث بكلامك العادي..." style="margin-top:12px"></textarea>
-          <div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn-ai" onclick="generateAiReport()"><i class="ti ti-sparkles"></i> صياغة احترافية</button></div>
-          <div class="ai-result" id="ai-result"></div>
-          <div style="display:none;margin-top:10px" id="ai-apply-wrap"><button class="btn-ai" onclick="applyAiResult()" style="width:100%;justify-content:center"><i class="ti ti-check"></i> تطبيق في نموذج التقرير</button></div>
-        </div>
         <div class="report-form">
           <!-- select مخفي — يُستخدم داخلياً فقط -->
           <select id="report-type" style="display:none"></select>
@@ -3622,9 +3601,6 @@ function fbSavePendingUsers_direct(list){
 }
 function showView_OLD_REMOVED(n){document.querySelectorAll('.content-view').forEach(function(v){v.classList.remove('active')});document.querySelectorAll('.sidebar-item').forEach(function(i){i.classList.remove('active')});var v=document.getElementById('view-'+n);if(v)v.classList.add('active');var nav=document.getElementById('nav-'+n);if(nav)nav.classList.add('active')}
 function selectPriority(l){['low','med','high'].forEach(function(x){var b=document.getElementById('pri-'+x);b.className='priority-btn'+(x===l?' s'+l.charAt(0):'')})}
-function fillAiPrompt(t){document.getElementById('ai-prompt').value=t}
-async function generateAiReport(){var p=document.getElementById('ai-prompt').value.trim();if(!p){showToast('اكتب وصفاً أولاً','red');return}var r=document.getElementById('ai-result'),aw=document.getElementById('ai-apply-wrap');r.style.display='block';aw.style.display='none';r.innerHTML='<div class="ai-typing"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>';try{var res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:'أنت مساعد متخصص في صياغة التقارير الأمنية الاحترافية باللغة العربية. أجب فقط بنص التقرير.',messages:[{role:'user',content:'صغ تقريراً أمنياً احترافياً: '+p}]})});var data=await res.json();var text=data.content&&data.content[0]?data.content[0].text:'تعذر توليد التقرير';window._aiText=text;r.innerHTML='<div style="white-space:pre-wrap;font-size:13px;line-height:1.8">'+escHtml(text)+'</div>';aw.style.display='block'}catch(e){r.innerHTML='<div style="color:var(--red);font-size:13px">حدث خطأ في الاتصال.</div>'}}
-function applyAiResult(){if(!window._aiText)return;document.getElementById('report-body').value=window._aiText;showToast('تم تطبيق النص في النموذج','gold')}
 var incidentImages = [];
 
 function compressImage(dataUrl, maxW, quality){
@@ -4040,9 +4016,6 @@ function sendReport(){
   var pfs=document.getElementById('ph-from');if(pfs)pfs.value='';
   var pfss=document.getElementById('ph-from-search');if(pfss)pfss.value='';
   var pfew=document.getElementById('ph-from-empid-wrap');if(pfew)pfew.style.display='none';
-  // تصفير الـ AI
-  var ap=document.getElementById('ai-prompt'),ar=document.getElementById('ai-result'),aw=document.getElementById('ai-apply-wrap');
-  if(ap)ap.value='';if(ar){ar.style.display='none';ar.innerHTML='';}if(aw)aw.style.display='none';
   setTimeout(function(){showView('my-reports');renderMyReports();renderDashboard();updateAlertsBadge();},1800);
 }
 
@@ -4356,8 +4329,6 @@ function showView(n){
     document.getElementById('report-form-step').style.display='none';
     document.getElementById('new-report-subtitle').textContent='اختر نوع التقرير للبدء';
     document.querySelectorAll('.rtype-card').forEach(function(c){c.classList.remove('selected');});
-    var aiPanel=document.getElementById('ai-panel-wrap');
-    if(aiPanel) aiPanel.style.display='none';
   }
   if(n==='req-approve'){renderReqApprove();}
   if(n==='requests'){renderRequestsPage();}
@@ -5797,10 +5768,6 @@ function selectReportType(type){
   var sel=document.getElementById('report-type');
   if(sel) sel.value=type;
   togglePatrolForm(type);
-
-  // إظهار الذكاء الاصطناعي للواقعة والإفادة فقط
-  var aiPanel=document.getElementById('ai-panel-wrap');
-  if(aiPanel) aiPanel.style.display=(type==='واقعة'||type==='افادة')?'block':'none';
 
   // ملء الاسم الوظيفي
   var an=document.getElementById('report-author-name');
