@@ -6342,9 +6342,10 @@ function toggleAllReportsAccess(userId,name){
   if(!u) return;
   u.allReportsAccess=!u.allReportsAccess;
   saveActiveUsersPermissions();
-  renderUsersList(); if(typeof renderPermsList==="function") renderPermsList();
   if(u.allReportsAccess){showToast('تم منح صلاحية كافة التقارير لـ '+name,'gold');}
   else{showToast('تم سحب صلاحية كافة التقارير من '+name,'red');}
+  if(typeof renderUsersList==="function") renderUsersList();
+  reopenPermsModal(userId, name);
 }
 
 function toggleAllTypesAccess(userId,name){
@@ -6352,11 +6353,12 @@ function toggleAllTypesAccess(userId,name){
   if(!u) return;
   u.allTypesAccess=!u.allTypesAccess;
   saveActiveUsersPermissions();
-  renderUsersList(); if(typeof renderPermsList==="function") renderPermsList();
   // إذا كان المستخدم الحالي هو نفسه — طبّق الفيلتر فوراً
   if(currentUser.id===userId){ currentUser.allTypesAccess=u.allTypesAccess; filterReportTypesByRank(); }
   if(u.allTypesAccess){showToast('تم منح صلاحية كل النماذج لـ '+name,'green');}
   else{showToast('تم سحب صلاحية كل النماذج من '+name,'red');}
+  if(typeof renderUsersList==="function") renderUsersList();
+  reopenPermsModal(userId, name);
 }
 
 function toggleReqAccess(userId,name){
@@ -6364,9 +6366,10 @@ function toggleReqAccess(userId,name){
   if(!u) return;
   u.reqAccess=!u.reqAccess;
   saveActiveUsersPermissions();
-  renderUsersList(); if(typeof renderPermsList==="function") renderPermsList();
   if(u.reqAccess){showToast('تم منح صلاحية طلبات المنتسبين لـ '+name,'green');}
   else{showToast('تم سحب صلاحية طلبات المنتسبين من '+name,'red');}
+  if(typeof renderUsersList==="function") renderUsersList();
+  reopenPermsModal(userId, name);
 }
 
 var _allReportsList=[];
@@ -6539,6 +6542,8 @@ function toggleAttAccess(userId,name){
   saveActiveUsersPermissions();
   if(u.attAccess){showToast('تم منح صلاحية سجل الحضور لـ '+name,'green');}
   else{showToast('تم سحب صلاحية سجل الحضور من '+name,'red');}
+  if(typeof renderUsersList==="function") renderUsersList();
+  reopenPermsModal(userId, name);
 }
 
 function toggleFolderAccess(userId,name){
@@ -6546,9 +6551,10 @@ function toggleFolderAccess(userId,name){
   if(!u) return;
   u.folderAccess=!u.folderAccess;
   saveActiveUsersPermissions();
-  renderUsersList(); if(typeof renderPermsList==="function") renderPermsList();
   if(u.folderAccess){showToast('تم منح صلاحية المجلدات لـ '+name,'green');}
   else{showToast('تم سحب صلاحية المجلدات من '+name,'red');}
+  if(typeof renderUsersList==="function") renderUsersList();
+  reopenPermsModal(userId, name);
 }
 
 function grantFolderAccess(name){
@@ -7542,9 +7548,9 @@ function renderPermsList(){
   loadActiveUsersPermissions();
   var list=document.getElementById('perms-list');
   if(!list) return;
-  // ضمان وجود معرّف وحرف أولي لكل منتسب (للسجلات القديمة القادمة من Firebase)
+  // ضمان وجود معرّف ثابت وحرف أولي لكل منتسب (للسجلات القديمة القادمة من Firebase)
   activeUsers.forEach(function(u,i){
-    if(!u.id) u.id='au'+i+'_'+(u.name||'').length+'_'+Date.now();
+    if(!u.id) u.id='auidx'+i;
     if(!u.initial) u.initial=((u.name||'?').trim().charAt(0))||'?';
   });
   if(activeUsers.length===0){
@@ -7581,7 +7587,7 @@ function openPermsModal(userId){
         '</div>'+
         '<div style="font-size:14px;font-weight:600;color:var(--text)">'+label+'</div>'+
       '</div>'+
-      '<button onclick="'+toggleFn+'(\''+u.id+'\',\''+u.name+'\');reopenPermsModal(\''+u.id+'\')" style="padding:8px 18px;border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;'+(isOn?'background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.35);color:var(--red)':'background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.35);color:var(--green)')+'">'+
+      '<button onclick="'+toggleFn+'(\''+u.id+'\',\''+u.name+'\')" style="padding:8px 18px;border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;'+(isOn?'background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.35);color:var(--red)':'background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.35);color:var(--green)')+'">'+
         (isOn?'<i class="ti ti-x"></i> سحب':'<i class="ti ti-check"></i> منح')+
       '</button>'+
     '</div>';
@@ -7622,12 +7628,16 @@ function saveRankFromPerms(userId){
   u.rankIdx=RANKS.indexOf(sel.value);
   saveActiveUsersPermissions();
   showToast('✅ تم تغيير رتبة '+u.name+' من '+oldRank+' إلى '+u.rank,'green');
-  reopenPermsModal(userId);
+  var savedName=u.name;
+  if(typeof renderUsersList==="function") renderUsersList();
+  reopenPermsModal(userId, savedName);
 }
 
-function reopenPermsModal(userId){
+function reopenPermsModal(userId, userName){
   renderPermsList();
-  openPermsModal(userId);
+  // بعد إعادة الرسم قد يتغيّر المعرّف، فنبحث بالاسم لأنه ثابت
+  var u = userName ? activeUsers.find(function(x){return x.name===userName;}) : activeUsers.find(function(x){return x.id===userId;});
+  if(u) openPermsModal(u.id);
 }
 
 function closePermsModal(){
