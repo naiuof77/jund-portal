@@ -484,6 +484,22 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
   </div>
 </div>
 
+<!-- Modal الصلاحيات -->
+<div class="modal-overlay" id="perms-modal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="perms-modal-title"></div>
+      <button class="modal-close" onclick="closePermsModal()">&#10005;</button>
+    </div>
+    <div class="modal-body" style="padding:24px">
+      <div id="perms-modal-body"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closePermsModal()"><i class="ti ti-x"></i> إغلاق</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOGIN -->
 <div id="login-page" class="page active">
   <div class="grid-bg"></div>
@@ -1404,21 +1420,6 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
         <div class="page-title">صلاحيات المنتسبين</div>
         <div class="page-subtitle">اضغط على منتسب لإدارة صلاحياته</div>
         <div id="perms-list" style="display:flex;flex-direction:column;gap:10px;margin-top:8px"></div>
-        <!-- Modal الصلاحيات -->
-        <div class="modal-overlay" id="perms-modal">
-          <div class="modal-box" style="max-width:480px">
-            <div class="modal-header">
-              <div class="modal-title" id="perms-modal-title"></div>
-              <button class="modal-close" onclick="closePermsModal()">&#10005;</button>
-            </div>
-            <div class="modal-body" style="padding:24px">
-              <div id="perms-modal-body"></div>
-            </div>
-            <div class="modal-actions">
-              <button class="btn-outline" onclick="closePermsModal()"><i class="ti ti-x"></i> إغلاق</button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- PENDING APPROVALS — قبول المنتسبين -->
@@ -6337,9 +6338,10 @@ function onFuelOptionChange(value){
   }
 }
 
-function toggleAllReportsAccess(userId,name){
+function toggleAllReportsAccess(userId){
   var u=activeUsers.find(function(x){return x.id===userId;});
   if(!u) return;
+  var name=u.name;
   u.allReportsAccess=!u.allReportsAccess;
   saveActiveUsersPermissions();
   if(u.allReportsAccess){showToast('تم منح صلاحية كافة التقارير لـ '+name,'gold');}
@@ -6348,9 +6350,10 @@ function toggleAllReportsAccess(userId,name){
   reopenPermsModal(userId, name);
 }
 
-function toggleAllTypesAccess(userId,name){
+function toggleAllTypesAccess(userId){
   var u=activeUsers.find(function(x){return x.id===userId;});
   if(!u) return;
+  var name=u.name;
   u.allTypesAccess=!u.allTypesAccess;
   saveActiveUsersPermissions();
   // إذا كان المستخدم الحالي هو نفسه — طبّق الفيلتر فوراً
@@ -6361,9 +6364,10 @@ function toggleAllTypesAccess(userId,name){
   reopenPermsModal(userId, name);
 }
 
-function toggleReqAccess(userId,name){
+function toggleReqAccess(userId){
   var u=activeUsers.find(function(x){return x.id===userId;});
   if(!u) return;
+  var name=u.name;
   u.reqAccess=!u.reqAccess;
   saveActiveUsersPermissions();
   if(u.reqAccess){showToast('تم منح صلاحية طلبات المنتسبين لـ '+name,'green');}
@@ -6535,9 +6539,10 @@ function submitTrafficViolation(){
   setTimeout(function(){ showView('my-reports'); renderMyReports(); renderDashboard(); updateAlertsBadge(); }, 1600);
 }
 
-function toggleAttAccess(userId,name){
+function toggleAttAccess(userId){
   var u=activeUsers.find(function(x){return x.id===userId;});
   if(!u) return;
+  var name=u.name;
   u.attAccess=!u.attAccess;
   saveActiveUsersPermissions();
   if(u.attAccess){showToast('تم منح صلاحية سجل الحضور لـ '+name,'green');}
@@ -6546,9 +6551,10 @@ function toggleAttAccess(userId,name){
   reopenPermsModal(userId, name);
 }
 
-function toggleFolderAccess(userId,name){
+function toggleFolderAccess(userId){
   var u=activeUsers.find(function(x){return x.id===userId;});
   if(!u) return;
+  var name=u.name;
   u.folderAccess=!u.folderAccess;
   saveActiveUsersPermissions();
   if(u.folderAccess){showToast('تم منح صلاحية المجلدات لـ '+name,'green');}
@@ -7587,7 +7593,7 @@ function openPermsModal(userId){
         '</div>'+
         '<div style="font-size:14px;font-weight:600;color:var(--text)">'+label+'</div>'+
       '</div>'+
-      '<button onclick="'+toggleFn+'(\''+u.id+'\',\''+u.name+'\')" style="padding:8px 18px;border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;'+(isOn?'background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.35);color:var(--red)':'background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.35);color:var(--green)')+'">'+
+      '<button onclick="'+toggleFn+'(\''+u.id+'\')" style="padding:8px 18px;border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;'+(isOn?'background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.35);color:var(--red)':'background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.35);color:var(--green)')+'">'+
         (isOn?'<i class="ti ti-x"></i> سحب':'<i class="ti ti-check"></i> منح')+
       '</button>'+
     '</div>';
