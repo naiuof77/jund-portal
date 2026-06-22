@@ -719,7 +719,7 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
               <div class="form-gp"><label class="form-lp">تفاصيل التقرير <span style="color:var(--red)">*</span></label><textarea class="form-ip form-ta" id="report-body" placeholder="تفاصيل كاملة للحادثة أو التقرير..."></textarea></div>
               <div class="form-gp"><label class="form-lp">الإجراءات المتخذة <span style="color:var(--red)">*</span></label><textarea class="form-ip" style="height:90px;resize:none" id="report-actions" placeholder="الإجراءات التي اتُّخذت..."></textarea></div>
               <div class="form-gp"><label class="form-lp">النتيجة <span style="color:var(--red)">*</span></label><textarea class="form-ip" style="height:90px;resize:none" id="report-result" placeholder="نتيجة الإجراءات المتخذة..."></textarea></div>
-              <div class="form-gp"><label class="form-lp">توصيات <span style="color:var(--red)">*</span></label><input class="form-ip" type="text" id="report-rec" placeholder="توصيات أو ملاحظات"/></div>
+              <div class="form-gp"><label class="form-lp">توصيات</label><input class="form-ip" type="text" id="report-rec" placeholder="توصيات أو ملاحظات (اختياري)"/></div>
             </div>
 
             <!-- حقول الأفادة فقط -->
@@ -3944,7 +3944,6 @@ function sendReport(){
       if(!b){showToast('يرجى كتابة تفاصيل الواقعة','red');return;}
       if(!inActions.trim()){showToast('يرجى كتابة الإجراءات المتخذة','red');return;}
       if(!inResult.trim()){showToast('يرجى كتابة النتيجة','red');return;}
-      if(!inRec.trim()){showToast('يرجى كتابة التوصيات','red');return;}
     } else {
       if(!t||!b){showToast('يرجى ملء الحقول الأساسية','red');return;}
     }
