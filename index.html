@@ -4309,6 +4309,9 @@ function closeSidebar(){
 
 function showView(n){
   closeSidebar();
+  // إغلاق أي نافذة منبثقة عالقة وإرجاع التمرير حتى لا تتجمد الصفحة
+  document.querySelectorAll('.modal-overlay.open').forEach(function(m){m.classList.remove('open');});
+  document.body.style.overflow='';
   document.querySelectorAll('.content-view').forEach(function(v){v.classList.remove('active')});
   document.querySelectorAll('.sidebar-item').forEach(function(i){i.classList.remove('active')});
   var v=document.getElementById('view-'+n);if(v)v.classList.add('active');
@@ -7539,6 +7542,11 @@ function renderPermsList(){
   loadActiveUsersPermissions();
   var list=document.getElementById('perms-list');
   if(!list) return;
+  // ضمان وجود معرّف وحرف أولي لكل منتسب (للسجلات القديمة القادمة من Firebase)
+  activeUsers.forEach(function(u,i){
+    if(!u.id) u.id='au'+i+'_'+(u.name||'').length+'_'+Date.now();
+    if(!u.initial) u.initial=((u.name||'?').trim().charAt(0))||'?';
+  });
   if(activeUsers.length===0){
     list.innerHTML='<div style="text-align:center;padding:40px;color:var(--text2)">لا يوجد منتسبون</div>';
     return;
