@@ -4319,6 +4319,9 @@ function dateYear(d){ var p=parseDateParts(d); return p?p.year:''; }
 function dateMonth(d){ var p=parseDateParts(d); return p?p.month:''; }
 function dateDay(d){ var p=parseDateParts(d); return p?p.day:(d||'').split('/')[0]||''; }
 function monthName(mm){ return MONTHS_AR[(parseInt(mm,10)||1)-1]||mm; }
+function fmtDateNum(d){ var p=parseDateParts(d); return p?(p.year+'/'+p.month+'/'+p.day):(d||''); }
+function mbLbl(M){ return '<span style="direction:ltr;display:inline-block">'+M+'</span> · '+monthName(M); }
+function dbLbl(Y,M,D){ return '<span style="direction:ltr;display:inline-block;font-family:monospace,Tajawal">'+Y+'/'+M+'/'+String(dateDay(D)).padStart(2,'0')+'</span>'; }
 
 function toggleSidebar(){
   document.body.classList.toggle('sidebar-open');
@@ -4392,17 +4395,17 @@ function renderBreadcrumb(){
   } else if(lvl==='rep-month'){
     html+=sep()+sp('التقارير',nav("'reports-root'"));
     html+=sep()+sp(Y,nav("'rep-year',null,null,'"+Y+"'"));
-    html+=sep()+sp(monthName(M),'',true);
+    html+=sep()+sp(mbLbl(M),'',true);
   } else if(lvl==='date'){
     html+=sep()+sp('التقارير',nav("'reports-root'"));
     html+=sep()+sp(Y,nav("'rep-year',null,null,'"+Y+"'"));
-    html+=sep()+sp(monthName(M),nav("'rep-month',null,null,'"+Y+"','"+M+"'"));
-    html+=sep()+sp(dateDay(D)+' '+monthName(M),'',true);
+    html+=sep()+sp(mbLbl(M),nav("'rep-month',null,null,'"+Y+"','"+M+"'"));
+    html+=sep()+sp(dbLbl(Y,M,D),'',true);
   } else if(lvl==='type'){
     html+=sep()+sp('التقارير',nav("'reports-root'"));
     html+=sep()+sp(Y,nav("'rep-year',null,null,'"+Y+"'"));
-    html+=sep()+sp(monthName(M),nav("'rep-month',null,null,'"+Y+"','"+M+"'"));
-    html+=sep()+sp(dateDay(D)+' '+monthName(M),nav("'date','"+D+"',null,'"+Y+"','"+M+"'"));
+    html+=sep()+sp(mbLbl(M),nav("'rep-month',null,null,'"+Y+"','"+M+"'"));
+    html+=sep()+sp(dbLbl(Y,M,D),nav("'date','"+D+"',null,'"+Y+"','"+M+"'"));
     html+=sep()+sp(fState.type,'',true);
   } else if(lvl==='requests-root'){
     html+=sep()+sp('الطلبات','',true);
@@ -4412,17 +4415,17 @@ function renderBreadcrumb(){
   } else if(lvl==='req-month'){
     html+=sep()+sp('الطلبات',nav("'requests-root'"));
     html+=sep()+sp(Y,nav("'req-year',null,null,'"+Y+"'"));
-    html+=sep()+sp(monthName(M),'',true);
+    html+=sep()+sp(mbLbl(M),'',true);
   } else if(lvl==='req-date'){
     html+=sep()+sp('الطلبات',nav("'requests-root'"));
     html+=sep()+sp(Y,nav("'req-year',null,null,'"+Y+"'"));
-    html+=sep()+sp(monthName(M),nav("'req-month',null,null,'"+Y+"','"+M+"'"));
-    html+=sep()+sp(dateDay(D)+' '+monthName(M),'',true);
+    html+=sep()+sp(mbLbl(M),nav("'req-month',null,null,'"+Y+"','"+M+"'"));
+    html+=sep()+sp(dbLbl(Y,M,D),'',true);
   } else if(lvl==='req-type'){
     html+=sep()+sp('الطلبات',nav("'requests-root'"));
     html+=sep()+sp(Y,nav("'req-year',null,null,'"+Y+"'"));
-    html+=sep()+sp(monthName(M),nav("'req-month',null,null,'"+Y+"','"+M+"'"));
-    html+=sep()+sp(dateDay(D)+' '+monthName(M),nav("'req-date','"+D+"',null,'"+Y+"','"+M+"'"));
+    html+=sep()+sp(mbLbl(M),nav("'req-month',null,null,'"+Y+"','"+M+"'"));
+    html+=sep()+sp(dbLbl(Y,M,D),nav("'req-date','"+D+"',null,'"+Y+"','"+M+"'"));
     html+=sep()+sp(fState.type,'',true);
   } else if(lvl==='att-root'){
     html+=sep()+sp('الحضور والانصراف','',true);
@@ -4434,8 +4437,8 @@ function renderBreadcrumb(){
   } else if(lvl==='keys-sub'){
     html+=sep()+sp('التقارير',nav("'reports-root'"));
     html+=sep()+sp(Y,nav("'rep-year',null,null,'"+Y+"'"));
-    html+=sep()+sp(monthName(M),nav("'rep-month',null,null,'"+Y+"','"+M+"'"));
-    html+=sep()+sp(dateDay(D)+' '+monthName(M),nav("'date','"+D+"',null,'"+Y+"','"+M+"'"));
+    html+=sep()+sp(mbLbl(M),nav("'rep-month',null,null,'"+Y+"','"+M+"'"));
+    html+=sep()+sp(dbLbl(Y,M,D),nav("'date','"+D+"',null,'"+Y+"','"+M+"'"));
     html+=sep()+sp('المفاتيح','',true);
   } else if(lvl==='keys-date'){
     html+=sep()+sp('المفاتيح',nav("'keys-root'"));
@@ -4519,9 +4522,9 @@ function renderFolderContent(){
     mKeys.forEach(function(m){
       html+='<div class="folder-day-card" onclick="fNav(\'rep-month\',null,null,\''+Y2+'\',\''+m+'\')">'+
         '<div class="fd-badge">'+mons[m].days+' يوم</div>'+
-        '<div class="fd-icon">📅</div>'+
-        '<div class="fd-date" style="font-size:17px;font-weight:700;font-family:Tajawal">'+monthName(m)+'</div>'+
-        '<div class="fd-count" style="font-size:11px;color:var(--text2)">'+Y2+' | '+mons[m].count+' تقرير</div>'+
+        '<div class="fd-icon">📁</div>'+
+        '<div class="fd-date" style="font-size:20px;font-weight:800;letter-spacing:1px;font-family:monospace,Tajawal;direction:ltr">'+Y2+'/'+m+'</div>'+
+        '<div class="fd-count" style="font-size:12px;color:var(--text2)">'+monthName(m)+' | '+mons[m].count+' تقرير</div>'+
       '</div>';
     });
     el.innerHTML=html+'</div>';
@@ -4538,8 +4541,8 @@ function renderFolderContent(){
       html+='<div class="folder-day-card" onclick="fNav(\'date\',\''+d+'\',null,\''+Y2+'\',\''+M2+'\')">'+
         '<div class="fd-badge">'+typeCount+' أنواع</div>'+
         '<div class="fd-icon">📁</div>'+
-        '<div class="fd-date" style="font-size:19px;font-weight:700;font-family:Tajawal">'+dateDay(d)+' '+monthName(M2)+'</div>'+
-        '<div class="fd-count">'+total+' تقرير</div>'+
+        '<div class="fd-date" style="font-size:18px;font-weight:800;letter-spacing:1px;font-family:monospace,Tajawal;direction:ltr">'+Y2+'/'+M2+'/'+String(dateDay(d)).padStart(2,'0')+'</div>'+
+        '<div class="fd-count">'+dateDay(d)+' '+monthName(M2)+' | '+total+' تقرير</div>'+
       '</div>';
     });
     el.innerHTML=html+'</div>';
@@ -4582,9 +4585,9 @@ function renderFolderContent(){
     rmKeys.forEach(function(m){
       html+='<div class="folder-day-card" onclick="fNav(\'req-month\',null,null,\''+Y2+'\',\''+m+'\')" style="border-color:rgba(201,168,76,0.2)">'+
         '<div class="fd-badge" style="background:rgba(201,168,76,0.12);color:var(--gold2)">'+rmons[m].days+' يوم</div>'+
-        '<div class="fd-icon">📅</div>'+
-        '<div class="fd-date" style="font-size:17px;font-weight:700;font-family:Tajawal;color:var(--gold2)">'+monthName(m)+'</div>'+
-        '<div class="fd-count" style="font-size:11px;color:var(--text2)">'+Y2+' | '+rmons[m].count+' طلب</div>'+
+        '<div class="fd-icon">📁</div>'+
+        '<div class="fd-date" style="font-size:20px;font-weight:800;letter-spacing:1px;font-family:monospace,Tajawal;color:var(--gold2);direction:ltr">'+Y2+'/'+m+'</div>'+
+        '<div class="fd-count" style="font-size:12px;color:var(--text2)">'+monthName(m)+' | '+rmons[m].count+' طلب</div>'+
       '</div>';
     });
     el.innerHTML=html+'</div>';
@@ -4603,8 +4606,8 @@ function renderFolderContent(){
       html+='<div class="folder-day-card" onclick="fNav(\'req-date\',\''+d+'\',null,\''+Y2+'\',\''+M2+'\')" style="border-color:rgba(201,168,76,0.2)">'+
         '<div class="fd-badge" style="background:rgba(201,168,76,0.12);color:var(--gold2)">'+rtypeCount+' أنواع</div>'+
         '<div class="fd-icon">📂</div>'+
-        '<div class="fd-date" style="font-size:19px;font-weight:700;font-family:Tajawal;color:var(--gold2)">'+dateDay(d)+' '+monthName(M2)+'</div>'+
-        '<div class="fd-count">'+rtotal+' طلب</div>'+
+        '<div class="fd-date" style="font-size:18px;font-weight:800;letter-spacing:1px;font-family:monospace,Tajawal;color:var(--gold2);direction:ltr">'+Y2+'/'+M2+'/'+String(dateDay(d)).padStart(2,'0')+'</div>'+
+        '<div class="fd-count">'+dateDay(d)+' '+monthName(M2)+' | '+rtotal+' طلب</div>'+
       '</div>';
     });
     el.innerHTML=html+'</div>';
@@ -4640,7 +4643,7 @@ function renderFolderContent(){
       htmlAtt+='<div class="folder-day-card" onclick="fNav(\'att-date\',\''+d+'\')" style="border-color:rgba(63,185,80,0.25)">'+
         '<div class="fd-badge" style="background:rgba(63,185,80,0.12);color:var(--green)">'+info.total+' سجل</div>'+
         '<div class="fd-icon">🗓️</div>'+
-        '<div class="fd-date" style="font-size:14px;letter-spacing:1px;font-family:monospace,Tajawal">'+d+'</div>'+
+        '<div class="fd-date" style="font-size:15px;letter-spacing:1px;font-family:monospace,Tajawal;direction:ltr">'+fmtDateNum(d)+'</div>'+
         '<div class="fd-count" style="text-align:center">🟢 '+info.in+' حضور &nbsp; 🔴 '+info.out+' انصراف</div>'+
         '<div class="fd-count" style="font-size:10px;margin-top:2px;color:var(--text2)">'+shiftBadges+'</div>'+
       '</div>';
@@ -4844,7 +4847,7 @@ function renderFolderContent(){
       khRootHtml+='<div class="folder-day-card" onclick="fNav(\'keys-date\',\''+d+'\')" style="border-color:rgba(201,168,76,0.3)">'+
         '<div class="fd-badge" style="background:rgba(201,168,76,0.12);color:#C9A84C">'+cnt+' سجل</div>'+
         '<div class="fd-icon">🗝️</div>'+
-        '<div class="fd-date" style="font-size:15px;letter-spacing:1px;font-family:monospace,Tajawal">'+d+'</div>'+
+        '<div class="fd-date" style="font-size:15px;letter-spacing:1px;font-family:monospace,Tajawal;direction:ltr">'+fmtDateNum(d)+'</div>'+
         '<div class="fd-count">'+cnt+' سجل</div>'+
       '</div>';
     });
