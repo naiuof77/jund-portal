@@ -1975,9 +1975,24 @@ function getNextSerial(type){
   var key = 'jund_serial_'+type+'_'+year;
   var counter = 0;
   try{ counter = parseInt(localStorage.getItem(key)||'0',10)||0; }catch(e){}
+  // مزامنة العداد مع أعلى رقم موجود فعلياً — يحمي من رجوع العداد بعد مسح الكاش
+  try{
+    var pools=[];
+    if(typeof _allReportsCache!=='undefined'&&_allReportsCache) pools=pools.concat(_allReportsCache);
+    if(typeof _myReportsCache!=='undefined'&&_myReportsCache) pools=pools.concat(_myReportsCache);
+    if(typeof _allRequestsCache!=='undefined'&&_allRequestsCache) pools=pools.concat(_allRequestsCache);
+    if(typeof _myRequestsCache!=='undefined'&&_myRequestsCache) pools=pools.concat(_myRequestsCache);
+    var re=new RegExp('^'+type+'-'+year+'-(\\d+)');
+    pools.forEach(function(r){
+      var m=re.exec(String((r&&r.id)||''));
+      if(m){ var n=parseInt(m[1],10)||0; if(n>counter) counter=n; }
+    });
+  }catch(e){}
   counter++;
   try{ localStorage.setItem(key, String(counter)); }catch(e){}
-  return type+'-'+year+'-'+String(counter).padStart(4,'0');
+  // لاحقة فريدة (وقت + عشوائي) تمنع تكرار الرقم نهائياً حتى بين الأجهزة
+  var uniq=(Date.now().toString(36)+Math.random().toString(36).slice(2,6)).slice(-6).toUpperCase();
+  return type+'-'+year+'-'+String(counter).padStart(4,'0')+'-'+uniq;
 }
 
 // ===== حالة التعديل =====
@@ -9361,7 +9376,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v7.4</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v7.5</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
