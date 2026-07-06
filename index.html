@@ -1433,7 +1433,7 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
       <!-- FOLDERS -->
       <div id="view-folders" class="content-view">
         <div class="page-title">المجلدات</div>
-        <div class="page-subtitle">التقارير مرتبة حسب التاريخ والنوع</div>
+        <div class="page-subtitle">التقارير مرتبة حسب التاريخ والنوع · تُعرض الدوريات الموافق عليها فقط</div>
 
         <!-- BREADCRUMB -->
         <div class="f-breadcrumb" id="f-breadcrumb">
@@ -4278,8 +4278,10 @@ function buildFolderIndex(){
   function addR(r){
     if(!r||!r.id||seenIds.has(r.id)) return; seenIds.add(r.id);
     if(r.isDraft) return;
-    // إخفاء الدوريات غير الموافق عليها
-    if(r.type==='استلام و تسليم دورية' && r.paStatus==='pending') return;
+    // إخفاء الدوريات غير الموافق عليها (بانتظار القرار أو المرفوضة)
+    if(r.type==='استلام و تسليم دورية' && (r.paStatus==='pending' || r.paStatus==='rejected')) return;
+    // إخفاء أي تقرير مرفوض بشكل عام
+    if(r.status==='مرفوض') return;
     var d=r.date||'غير محدد';
     var tp=r.type||'أخرى';
     if(!idx[d]) idx[d]={};
