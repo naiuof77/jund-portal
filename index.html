@@ -3839,25 +3839,40 @@ function sendReport(){
     var from=document.getElementById('ph-from').value.trim();
     var car=document.querySelector('input[name="ph-car"]:checked');
     var shift=document.querySelector('input[name="ph-shift"]:checked');
-    var carVal = car ? (car.value==='other' ? (document.getElementById('ph-car-other').value.trim()||'غير محدد') : car.value) : '';
-    if(!rec||!from||!carVal||!shift){showToast('يرجى ملء جميع بيانات الاستلام والتسليم','red');return;}
+    // كل الحقول إجبارية ما عدا الملاحظات
+    if(!rec){showToast('يرجى إدخال اسم الموظف المستلم','red');return;}
+    if(!from){showToast('يرجى إدخال المستلم منه','red');return;}
+    if(!car){showToast('يرجى اختيار السيارة — رقم اللوحة','red');return;}
+    var carVal = car.value==='other' ? document.getElementById('ph-car-other').value.trim() : car.value;
+    if(!carVal){showToast('يرجى كتابة رقم اللوحة','red');return;}
+    if(!shift){showToast('يرجى اختيار الشفت','red');return;}
+    var phDateRaw=document.getElementById('ph-date').value||'';
+    if(!phDateRaw){showToast('يرجى اختيار تاريخ الاستلام','red');return;}
+    var phTime=document.getElementById('ph-time').value||'';
+    if(!phTime){showToast('يرجى اختيار وقت الاستلام','red');return;}
+    var odo=document.getElementById('ph-odometer').value.trim();
+    if(!odo){showToast('يرجى إدخال عداد الكيلومتر','red');return;}
     // قراءة قيمة البنزين من الخيارات أو الحقل اليدوي
     var fuelOpt = document.querySelector('input[name="ph-fuel-type"]:checked');
+    if(!fuelOpt){showToast('يرجى اختيار نسبة البنزين','red');return;}
     var fuelVal;
-    if(fuelOpt && fuelOpt.value !== 'custom'){
+    if(fuelOpt.value !== 'custom'){
       fuelVal = fuelOpt.value;
     } else {
       var fuelInp = document.getElementById('ph-fuel');
-      fuelVal = (fuelInp && fuelInp.value) ? fuelInp.value : '—';
+      fuelVal = (fuelInp && fuelInp.value.trim()) ? fuelInp.value.trim() : '';
+      if(!fuelVal){showToast('يرجى كتابة نسبة البنزين','red');return;}
     }
     var fuel = fuelVal;
-    var phDateRaw=document.getElementById('ph-date').value||'';var phDate=isoToArabicDate(phDateRaw)||phDateRaw;
-    var phTime=document.getElementById('ph-time').value||'';
+    var phDate=isoToArabicDate(phDateRaw)||phDateRaw;
     var equip=document.querySelector('input[name="ph-equip"]:checked');
+    if(!equip){showToast('يرجى الإجابة: هل المعدات سليمة؟','red');return;}
     var engine=document.querySelector('input[name="ph-engine"]:checked');
+    if(!engine){showToast('يرجى الإجابة: هل المحرك سليم؟','red');return;}
     var interior=document.querySelector('input[name="ph-interior"]:checked');
+    if(!interior){showToast('يرجى الإجابة: هل الجزء الداخلي سليم؟','red');return;}
     var exterior=document.querySelector('input[name="ph-exterior"]:checked');
-    var odo=document.getElementById('ph-odometer').value||'—';
+    if(!exterior){showToast('يرجى الإجابة: هل الجزء الخارجي سليم؟','red');return;}
     newReport={
       id:getNextSerial('RPT'),title:'استلام وتسليم دورية — '+carVal+' — شفت '+shift.value,
       type:tp,typeCls:'badge-patrol',date:phDate,time:phTime,priority:'عادي',priorityColor:'var(--green)',
@@ -9346,7 +9361,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v7.3</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v7.4</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
