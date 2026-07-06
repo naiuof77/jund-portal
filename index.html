@@ -1601,7 +1601,7 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
             <button onclick="closePAModal()" style="width:34px;height:34px;border-radius:8px;background:transparent;border:1px solid rgba(27,42,107,0.3);color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
           </div>
           <div style="padding:26px" id="pa-modal-body"></div>
-          <div id="pa-modal-actions" style="display:flex;gap:12px;padding:16px 26px;border-top:1px solid rgba(27,42,107,0.2);background:var(--dark3);border-radius:0 0 16px 16px"></div>
+          <div id="pa-modal-actions" style="display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px;border-top:1px solid rgba(27,42,107,0.2);background:var(--dark3);border-radius:0 0 16px 16px"></div>
         </div>
       </div>
 
@@ -8175,10 +8175,12 @@ function openPAModal(r){
       actionsHtml+='<button onclick="deletePAItem()" style="padding:11px 18px;background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.3);border-radius:8px;color:var(--red);font-family:Cairo,sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:7px;margin-right:auto"><i class="ti ti-trash"></i> حذف من القائمة</button>';
     }
     if(isPending){
-      actionsHtml+='<div style="flex:1;display:flex;gap:8px;align-items:center">'+
-        '<input type="text" id="pa-reject-reason" placeholder="سبب الرفض (إجباري عند الرفض)..." style="flex:1;padding:10px 14px;background:rgba(27,42,107,0.08);border:1px solid rgba(27,42,107,0.2);border-radius:8px;color:var(--text);font-family:Tajawal,sans-serif;font-size:13px"/>'+
-        '<button onclick="decidePAModal(\'rejected\')" style="padding:11px 18px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.35);border-radius:8px;color:var(--red);font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px"><i class="ti ti-x"></i> رفض</button>'+
-        '<button onclick="decidePAModal(\'approved\')" style="padding:11px 24px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.35);border-radius:8px;color:var(--green);font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px"><i class="ti ti-check"></i> موافقة</button>'+
+      actionsHtml+='<div style="flex:1;min-width:230px;display:flex;flex-direction:column;gap:10px">'+
+        '<div id="pa-reject-wrap" style="display:none"><input type="text" id="pa-reject-reason" placeholder="اكتب سبب الرفض (إجباري)..." style="width:100%;box-sizing:border-box;padding:11px 14px;background:rgba(248,81,73,0.06);border:1px solid rgba(248,81,73,0.35);border-radius:8px;color:var(--text);font-family:Tajawal,sans-serif;font-size:13px"/></div>'+
+        '<div style="display:flex;gap:10px">'+
+        '<button onclick="decidePAModal(\'approved\')" style="flex:1;min-width:0;padding:12px 10px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.35);border-radius:8px;color:var(--green);font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px"><i class="ti ti-check"></i> موافقة</button>'+
+        '<button onclick="decidePAModal(\'rejected\')" style="flex:1;min-width:0;padding:12px 10px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.35);border-radius:8px;color:var(--red);font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px"><i class="ti ti-x"></i> رفض</button>'+
+        '</div>'+
       '</div>';
     }
     document.getElementById('pa-modal-actions').innerHTML=actionsHtml;
@@ -8206,6 +8208,7 @@ function openPAModal(r){
       '<span style="font-size:18px">'+(isApproved?'✅':'❌')+'</span>'+
       '<div><div style="font-size:14px;font-weight:700;color:'+sc+'">'+si+'</div>'+
       (r.paDecidedAt?'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+r.paDecidedAt+'</div>':'')+
+      (!isApproved&&r.rejectReason?'<div style="font-size:12px;color:var(--red);margin-top:5px"><strong>سبب الرفض:</strong> '+escHtml(r.rejectReason)+'</div>':'')+
       '</div></div>';
   }
 
@@ -8242,10 +8245,12 @@ function openPAModal(r){
     actionsHtml+='<button onclick="deletePAItem()" style="padding:11px 18px;background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.3);border-radius:8px;color:var(--red);font-family:Cairo,sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:7px;margin-right:auto"><i class="ti ti-trash"></i> حذف من القائمة</button>';
   }
   if(isPending){
-    actionsHtml+='<div style="flex:1;display:flex;gap:8px;align-items:center">'+
-      '<input type="text" id="pa-reject-reason" placeholder="سبب الرفض (إجباري عند الرفض)..." style="flex:1;padding:10px 14px;background:rgba(27,42,107,0.08);border:1px solid rgba(27,42,107,0.2);border-radius:8px;color:var(--text);font-family:Tajawal,sans-serif;font-size:13px"/>'+
-      '<button onclick="decidePAModal(\'rejected\')" style="padding:11px 18px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.35);border-radius:8px;color:var(--red);font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px"><i class="ti ti-x"></i> رفض</button>'+
-      '<button onclick="decidePAModal(\'approved\')" style="padding:11px 24px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.35);border-radius:8px;color:var(--green);font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px"><i class="ti ti-check"></i> موافقة</button>'+
+    actionsHtml+='<div style="flex:1;min-width:230px;display:flex;flex-direction:column;gap:10px">'+
+      '<div id="pa-reject-wrap" style="display:none"><input type="text" id="pa-reject-reason" placeholder="اكتب سبب الرفض (إجباري)..." style="width:100%;box-sizing:border-box;padding:11px 14px;background:rgba(248,81,73,0.06);border:1px solid rgba(248,81,73,0.35);border-radius:8px;color:var(--text);font-family:Tajawal,sans-serif;font-size:13px"/></div>'+
+      '<div style="display:flex;gap:10px">'+
+      '<button onclick="decidePAModal(\'approved\')" style="flex:1;min-width:0;padding:12px 10px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.35);border-radius:8px;color:var(--green);font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px"><i class="ti ti-check"></i> موافقة</button>'+
+      '<button onclick="decidePAModal(\'rejected\')" style="flex:1;min-width:0;padding:12px 10px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.35);border-radius:8px;color:var(--red);font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px"><i class="ti ti-x"></i> رفض</button>'+
+      '</div>'+
     '</div>';
   }
   document.getElementById('pa-modal-actions').innerHTML=actionsHtml;
@@ -8301,7 +8306,15 @@ function closePAModal(){
 function decidePAModal(decision){
   if(!_paCurrentItem) return;
   if(decision==='rejected'){
+    var wrap=document.getElementById('pa-reject-wrap');
     var reasonEl=document.getElementById('pa-reject-reason');
+    // أول ضغطة على رفض: أظهر حقل السبب فقط
+    if(wrap&&wrap.style.display==='none'){
+      wrap.style.display='block';
+      if(reasonEl){reasonEl.focus();}
+      showToast('اكتب سبب الرفض ثم اضغط "رفض" مرة أخرى','red');
+      return;
+    }
     var reason=reasonEl?reasonEl.value.trim():'';
     if(!reason){showToast('يرجى كتابة سبب الرفض','red');if(reasonEl){reasonEl.style.borderColor='var(--red)';reasonEl.focus();}return;}
     _paCurrentItem._rejectReason=reason;
@@ -9376,7 +9389,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v7.5</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v7.6</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
