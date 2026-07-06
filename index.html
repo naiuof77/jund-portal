@@ -8224,15 +8224,35 @@ function deletePAItem(){
   if(!_paCurrentItem) return;
   if(!confirm('هل تريد حذف هذا العنصر من قائمة المعاينة؟')) return;
   var r=_paCurrentItem;
+  // احذف من localStorage
   try{
     var paKey='jund_pa_inbox_'+currentUser.name;
     var inbox=JSON.parse(localStorage.getItem(paKey)||'[]');
     inbox=inbox.filter(function(x){return x.id!==r.id;});
     localStorage.setItem(paKey,JSON.stringify(inbox));
   }catch(e){}
-  closePAModal();
-  renderPreviewApprove();
-  showToast('تم حذف العنصر من القائمة','red');
+  // احذف من Firebase (المصدر الفعلي للقائمة)
+  if(db){
+    var paDocId='pa_inbox_'+currentUser.name;
+    db.collection('system').doc(paDocId).get().then(function(doc){
+      var list=(doc.exists&&doc.data().list)?doc.data().list:[];
+      list=list.filter(function(x){return x.id!==r.id;});
+      return db.collection('system').doc(paDocId).set({list:list,_ts:Date.now()});
+    }).then(function(){
+      closePAModal();
+      renderPreviewApprove();
+      showToast('تم حذف العنصر من القائمة','red');
+    }).catch(function(e){
+      console.error('خطأ حذف العنصر:',e);
+      closePAModal();
+      renderPreviewApprove();
+      showToast('تعذر الحذف، تحقق من الاتصال','red');
+    });
+  } else {
+    closePAModal();
+    renderPreviewApprove();
+    showToast('تم حذف العنصر من القائمة','red');
+  }
 }
 
 function closePAModal(){
