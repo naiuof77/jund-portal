@@ -8232,16 +8232,22 @@ function deletePAItem(){
     localStorage.setItem(paKey,JSON.stringify(inbox));
   }catch(e){}
   // احذف من Firebase (المصدر الفعلي للقائمة)
+  var rid=String(r.id||r.reportId||'');
+  function notMine(x){
+    return String(x.id||'')!==rid && String(x.reportId||'')!==rid;
+  }
   if(db){
     var paDocId='pa_inbox_'+currentUser.name;
     db.collection('system').doc(paDocId).get().then(function(doc){
       var list=(doc.exists&&doc.data().list)?doc.data().list:[];
-      list=list.filter(function(x){return x.id!==r.id;});
+      var before=list.length;
+      list=list.filter(notMine);
+      console.log('deletePAItem: id='+rid+' before='+before+' after='+list.length);
       return db.collection('system').doc(paDocId).set({list:list,_ts:Date.now()});
     }).then(function(){
       closePAModal();
       renderPreviewApprove();
-      showToast('تم حذف العنصر من القائمة','red');
+      showToast('✓ تم الحذف نهائياً من القائمة','red');
     }).catch(function(e){
       console.error('خطأ حذف العنصر:',e);
       closePAModal();
@@ -8251,7 +8257,7 @@ function deletePAItem(){
   } else {
     closePAModal();
     renderPreviewApprove();
-    showToast('تم حذف العنصر من القائمة','red');
+    showToast('✓ تم الحذف نهائياً من القائمة','red');
   }
 }
 
