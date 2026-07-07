@@ -346,6 +346,8 @@ body.sidebar-open .sidebar-overlay{opacity:1;visibility:visible}
 #toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--dark2);border-radius:10px;padding:14px 28px;font-size:14px;font-weight:600;z-index:2000;box-shadow:0 8px 32px rgba(0,0,0,.7);align-items:center;gap:10px;font-family:"Tajawal",sans-serif;white-space:nowrap;display:none;border:1px solid rgba(63,185,80,0.4);color:var(--green)}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
 var firebaseConfig = {
@@ -357,11 +359,30 @@ var firebaseConfig = {
   appId: "1:427657345556:web:5ca1237036a7eb298b8501"
 };
 firebase.initializeApp(firebaseConfig);
+
+// ===== طبقة أمان 1: App Check (يتفعّل عند وضع مفتاح reCAPTCHA أدناه) =====
+var APPCHECK_SITE_KEY = ''; // ضع هنا مفتاح موقع reCAPTCHA v3 عند تجهيزه
+if (APPCHECK_SITE_KEY) {
+  try {
+    firebase.appCheck().activate(APPCHECK_SITE_KEY, true);
+    console.log('✅ App Check مفعّل');
+  } catch(e) { console.error('App Check:', e); }
+}
+
+// ===== طبقة أمان 2: مصادقة مجهولة — كل زائر يحصل على هوية موثقة من Firebase =====
+var _authReady = firebase.auth().signInAnonymously().then(function(){
+  console.log('✅ المصادقة المجهولة نشطة');
+}).catch(function(e){
+  console.warn('المصادقة المجهولة غير مفعّلة بعد في لوحة Firebase:', e.code);
+});
+
 var db = firebase.firestore();
-// تأكد أن كلمة مرور الأدمن محفوظة في Firebase
-db.collection('passwords').doc('naiuof77').get().then(function(doc){
-  if(!doc.exists){ db.collection('passwords').doc('naiuof77').set({hash:'H1xe1uo',_ts:Date.now()}); }
-}).catch(function(){});
+// تأكد أن كلمة مرور الأدمن محفوظة في Firebase (بعد اكتمال المصادقة)
+_authReady.then(function(){
+  db.collection('passwords').doc('naiuof77').get().then(function(doc){
+    if(!doc.exists){ db.collection('passwords').doc('naiuof77').set({hash:'H1xe1uo',_ts:Date.now()}); }
+  }).catch(function(){});
+});
 </script>
 </head>
 <body>
@@ -9562,7 +9583,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.2</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.3</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
