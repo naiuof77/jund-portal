@@ -581,7 +581,9 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
       </div>
       <div class="sidebar-section">المتابعة</div>
       <div class="sidebar-item" id="nav-alerts" onclick="showView('alerts')"><i class="ti ti-bell"></i> التنبيهات <span class="badge-count" id="alerts-badge" style="display:none"></span></div>
-      <div class="sidebar-item" id="nav-incidents-status" onclick="showView('incidents-status')"><i class="ti ti-alert-circle"></i> حالة الوقائع</div>
+      <div id="incidents-nav-item" style="display:none">
+        <div class="sidebar-item" id="nav-incidents-status" onclick="showView('incidents-status')"><i class="ti ti-alert-circle"></i> حالة الوقائع</div>
+      </div>
       <div class="sidebar-item" id="nav-attendance" onclick="showView('attendance')" style="display:none"><i class="ti ti-map-pin-check"></i> الحضور والانصراف</div>
       <div class="sidebar-item" id="nav-my-tracking" onclick="showView('my-tracking')"><i class="ti ti-clipboard-check"></i> متابعة الطلبات <span class="badge-count" id="my-req-status-badge" style="display:none"></span></div>
       <div class="sidebar-item" id="nav-preview-approve" onclick="showView('preview-approve')" style="display:none"><i class="ti ti-eye-check"></i> المعاينة والقبول <span class="badge-count" id="pa-nav-badge" style="display:none"></span></div>
@@ -3441,6 +3443,7 @@ function doLogin(){
               us.reqAccess=perms[us.name].reqAccess||false;
               us.attAccess=perms[us.name].attAccess||false;
               us.allTypesAccess=perms[us.name].allTypesAccess||false;
+              us.incidentsAccess=perms[us.name].incidentsAccess||false;
             }
           });
           startAdminListeners();
@@ -3506,6 +3509,7 @@ function _finishLogin(u,a,name,empId,perms,fixedData){
       us.reqAccess=perms[us.name].reqAccess||false;
       us.attAccess=perms[us.name].attAccess||false;
       us.allTypesAccess=perms[us.name].allTypesAccess||false;
+              us.incidentsAccess=perms[us.name].incidentsAccess||false;
     }
   });
 
@@ -3514,6 +3518,7 @@ function _finishLogin(u,a,name,empId,perms,fixedData){
   currentUser.empId=empId;
   currentUser.hasFolderAccess=a;
   currentUser.hasAllReportsAccess=a;
+  currentUser.hasIncidentsAccess=a;
 
   var matchedUser=activeUsers.find(function(x){return x.name===name;});
   var isManager=!a&&matchedUser&&(matchedUser.rank==='مدير');
@@ -3527,6 +3532,7 @@ function _finishLogin(u,a,name,empId,perms,fixedData){
     if(matchedUser.reqAccess) currentUser.canApproveRequests=true;
     if(matchedUser.attAccess) currentUser.hasAttAccess=true;
     if(matchedUser.allTypesAccess) currentUser.allTypesAccess=true;
+    if(matchedUser.incidentsAccess) currentUser.hasIncidentsAccess=true;
   }
 
   filterReportTypesByRank();
@@ -3538,6 +3544,7 @@ function _finishLogin(u,a,name,empId,perms,fixedData){
   document.getElementById('all-reports-nav-item').style.display=(a||currentUser.hasAllReportsAccess)?'block':'none';
   document.getElementById('req-tracking-nav-item').style.display=(a||isManager||currentUser.hasAllReportsAccess||currentUser.canApproveRequests)?'block':'none';
   document.getElementById('folders-nav-item').style.display=(a||currentUser.hasFolderAccess)?'block':'none';
+  document.getElementById('incidents-nav-item').style.display=(a||currentUser.hasIncidentsAccess)?'block':'none';
   document.getElementById('nav-new-report').style.display=isManager?'none':'block';
   document.getElementById('nav-requests').style.display=isManager?'none':'block';
   var myTrackingNav=document.getElementById('nav-my-tracking');
@@ -4402,6 +4409,9 @@ function showView(n){
   if(n==='my-tracking'){renderMyTrackingPage();}
   if(n==='preview-approve'){renderPreviewApprove();}
   if(n==='attendance'){showView_attendance();}
+  if(n==='incidents-status'){
+    if(!currentUser.isAdmin && !currentUser.hasIncidentsAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
+  }
   if(n==='att-admin'){
     if(!currentUser.isAdmin && !currentUser.hasAttAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
     renderAttAdmin();
@@ -6498,7 +6508,7 @@ function adminDeleteReport(reportId, ownerName){
 function saveActiveUsersPermissions(){
   var perms={};
   activeUsers.forEach(function(u){
-    perms[u.name]={folderAccess:u.folderAccess||false,allReportsAccess:u.allReportsAccess||false,reqAccess:u.reqAccess||false,attAccess:u.attAccess||false,allTypesAccess:u.allTypesAccess||false};
+    perms[u.name]={folderAccess:u.folderAccess||false,allReportsAccess:u.allReportsAccess||false,reqAccess:u.reqAccess||false,attAccess:u.attAccess||false,allTypesAccess:u.allTypesAccess||false,incidentsAccess:u.incidentsAccess||false};
   });
   fbSaveActiveUsers();
   fbSavePermissions(perms);
@@ -6622,6 +6632,18 @@ function toggleFolderAccess(userId){
   saveActiveUsersPermissions();
   if(u.folderAccess){showToast('تم منح صلاحية المجلدات لـ '+name,'green');}
   else{showToast('تم سحب صلاحية المجلدات من '+name,'red');}
+  if(typeof renderUsersList==="function") renderUsersList();
+  reopenPermsModal(userId, name);
+}
+
+function toggleIncidentsAccess(userId){
+  var u=activeUsers.find(function(x){return x.id===userId;});
+  if(!u) return;
+  var name=u.name;
+  u.incidentsAccess=!u.incidentsAccess;
+  saveActiveUsersPermissions();
+  if(u.incidentsAccess){showToast('تم منح صلاحية حالة الوقائع لـ '+name,'green');}
+  else{showToast('تم سحب صلاحية حالة الوقائع من '+name,'red');}
   if(typeof renderUsersList==="function") renderUsersList();
   reopenPermsModal(userId, name);
 }
@@ -7501,6 +7523,7 @@ function renderUsersList(){
     var rankCls=getRankClass(u.rank);
     var badges='';
     if(u.folderAccess) badges+='<span class="rank-badge" style="background:rgba(88,166,255,0.12);color:var(--blue);border-color:rgba(88,166,255,0.3);font-size:11px"><i class="ti ti-folder"></i> مجلدات</span>';
+    if(u.incidentsAccess) badges+='<span class="rank-badge" style="background:rgba(240,136,62,0.12);color:#F0883E;border-color:rgba(240,136,62,0.3);font-size:11px"><i class="ti ti-alert-circle"></i> حالة الوقائع</span>';
     if(u.allReportsAccess) badges+='<span class="rank-badge" style="background:rgba(201,168,76,0.12);color:var(--gold2);border-color:rgba(201,168,76,0.3);font-size:11px"><i class="ti ti-eye"></i> تقارير</span>';
     if(u.reqAccess) badges+='<span class="rank-badge" style="background:rgba(163,113,247,0.12);color:var(--purple);border-color:rgba(163,113,247,0.3);font-size:11px"><i class="ti ti-clipboard-list"></i> طلبات</span>';
     if(u.attAccess) badges+='<span class="rank-badge" style="background:rgba(63,185,80,0.12);color:var(--green);border-color:rgba(63,185,80,0.3);font-size:11px"><i class="ti ti-map-pin-check"></i> حضور</span>';
@@ -7629,10 +7652,11 @@ function renderPermsList(){
   list.innerHTML=activeUsers.map(function(u){
     var badges='';
     if(u.folderAccess) badges+='<span class="rank-badge" style="background:rgba(88,166,255,0.12);color:var(--blue);border-color:rgba(88,166,255,0.3);font-size:11px"><i class="ti ti-folder"></i> مجلدات</span>';
+    if(u.incidentsAccess) badges+='<span class="rank-badge" style="background:rgba(240,136,62,0.12);color:#F0883E;border-color:rgba(240,136,62,0.3);font-size:11px"><i class="ti ti-alert-circle"></i> حالة الوقائع</span>';
     if(u.allReportsAccess) badges+='<span class="rank-badge" style="background:rgba(201,168,76,0.12);color:var(--gold2);border-color:rgba(201,168,76,0.3);font-size:11px"><i class="ti ti-eye"></i> تقارير</span>';
     if(u.reqAccess) badges+='<span class="rank-badge" style="background:rgba(163,113,247,0.12);color:var(--purple);border-color:rgba(163,113,247,0.3);font-size:11px"><i class="ti ti-clipboard-list"></i> طلبات</span>';
     if(u.attAccess) badges+='<span class="rank-badge" style="background:rgba(63,185,80,0.12);color:var(--green);border-color:rgba(63,185,80,0.3);font-size:11px"><i class="ti ti-map-pin-check"></i> حضور</span>';
-    if(!u.folderAccess&&!u.allReportsAccess&&!u.reqAccess&&!u.attAccess) badges='<span style="font-size:12px;color:var(--text2)">لا توجد صلاحيات إضافية</span>';
+    if(!u.folderAccess&&!u.allReportsAccess&&!u.reqAccess&&!u.attAccess&&!u.incidentsAccess) badges='<span style="font-size:12px;color:var(--text2)">لا توجد صلاحيات إضافية</span>';
     return '<div onclick="openPermsModal(\''+u.id+'\')" style="background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor=\'var(--purple)\'" onmouseout="this.style.borderColor=\'rgba(27,42,107,0.2)\'">'+
       '<div style="width:46px;height:46px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">'+u.initial+'</div>'+
       '<div style="flex:1">'+
@@ -7682,7 +7706,8 @@ function openPermsModal(userId){
     permRow('كل التقارير','ti ti-eye','#C9A84C',!!u.allReportsAccess,'toggleAllReportsAccess')+
     permRow('كل نماذج التقارير','ti ti-layout-grid','#6DCFCF',!!u.allTypesAccess,'toggleAllTypesAccess')+
     permRow('طلبات المنتسبين','ti ti-clipboard-list','#A371F7',!!u.reqAccess,'toggleReqAccess')+
-    permRow('سجل الحضور','ti ti-map-pin-check','#3FB950',!!u.attAccess,'toggleAttAccess');
+    permRow('سجل الحضور','ti ti-map-pin-check','#3FB950',!!u.attAccess,'toggleAttAccess')+
+    permRow('حالة الوقائع','ti ti-alert-circle','#F0883E',!!u.incidentsAccess,'toggleIncidentsAccess');
   document.getElementById('perms-modal').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -9398,7 +9423,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v7.9</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.0</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
