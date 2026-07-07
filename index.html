@@ -3545,6 +3545,14 @@ function doLogin(){
 }
 
 function _finishLogin(u,a,name,empId,perms,fixedData){
+  // تعبئة تلقائية: إذا كان الرقم الوظيفي ناقصاً في سجل المنتسب، احفظه من بيانات الدخول
+  if(!a && empId){
+    var _mu=activeUsers.find(function(x){return x.name===name;});
+    if(_mu && !_mu.empId){
+      _mu.empId=empId;
+      try{ saveActiveUsersPermissions(); }catch(e){}
+    }
+  }
   // تطبيق الصلاحيات
   activeUsers.forEach(function(us){
     if(perms[us.name]){
@@ -7862,6 +7870,10 @@ function openPermsModal(userId){
       '<select id="perm-rank-sel-'+u.id+'" class="form-select" style="flex:1;padding:9px 12px;font-size:13px">'+rankOpts+'</select>'+
       '<button onclick="saveRankFromPerms(\''+u.id+'\')" style="padding:9px 20px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.35);border-radius:8px;color:var(--gold2);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap"><i class="ti ti-check"></i> حفظ الرتبة</button>'+
     '</div>'+
+    '<div style="display:flex;gap:10px;align-items:center;margin-top:10px">'+
+      '<input type="text" id="perm-empid-'+u.id+'" value="'+escHtml(u.empId||'')+'" placeholder="الرقم الوظيفي..." style="flex:1;padding:9px 12px;background:rgba(27,42,107,0.08);border:1px solid rgba(27,42,107,0.25);border-radius:8px;color:var(--text);font-family:Tajawal,sans-serif;font-size:13px;direction:ltr;text-align:right"/>'+
+      '<button onclick="saveEmpIdFromPerms(\''+u.id+'\')" style="padding:9px 20px;background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.3);border-radius:8px;color:var(--blue);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap"><i class="ti ti-id-badge"></i> حفظ الرقم</button>'+
+    '</div>'+
   '</div>';
   document.getElementById('perms-modal-body').innerHTML=
     rankSection+
@@ -7873,6 +7885,19 @@ function openPermsModal(userId){
     permRow('حالة الوقائع','ti ti-alert-circle','#F0883E',!!u.incidentsAccess,'toggleIncidentsAccess');
   document.getElementById('perms-modal').classList.add('open');
   document.body.style.overflow='hidden';
+}
+
+function saveEmpIdFromPerms(userId){
+  var u=activeUsers.find(function(x){return x.id===userId;});
+  if(!u) return;
+  var inp=document.getElementById('perm-empid-'+userId);
+  if(!inp) return;
+  var v=inp.value.trim();
+  if(v.length>20){showToast('الرقم الوظيفي طويل جداً','red');return;}
+  u.empId=v;
+  saveActiveUsersPermissions();
+  showToast(v?('تم حفظ الرقم الوظيفي لـ '+u.name):'تم مسح الرقم الوظيفي','green');
+  if(typeof renderUsersList==="function") renderUsersList();
 }
 
 function saveRankFromPerms(userId){
@@ -9586,7 +9611,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.4</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.5</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
