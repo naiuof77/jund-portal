@@ -623,6 +623,7 @@ _authReady.then(function(){
         <div class="sidebar-item" id="nav-permissions" onclick="showView('permissions')"><i class="ti ti-shield-lock"></i> صلاحيات المنتسبين</div>
         <div class="sidebar-item" id="nav-pending-approvals" onclick="showView('pending-approvals')"><i class="ti ti-user-check"></i> قبول المنتسبين <span class="badge-count" id="pending-approvals-badge" style="display:none"></span></div>
         <div class="sidebar-item" id="nav-backup" onclick="showView('backup')"><i class="ti ti-database-export"></i> النسخ الاحتياطي</div>
+        <div class="sidebar-item" id="nav-activity-log" onclick="showView('activity-log')"><i class="ti ti-history"></i> سجل النشاط</div>
       </div>
       <div class="sidebar-section">الإعدادات</div>
       <div class="sidebar-item" onclick="openSignatureModal()" id="nav-signature"><i class="ti ti-signature"></i> توقيعي <span id="sig-saved-dot" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;vertical-align:middle;margin-right:4px"></span></div>
@@ -1489,6 +1490,20 @@ _authReady.then(function(){
           <input type="text" id="perms-search" placeholder="ابحث بالاسم أو الرقم الوظيفي..." oninput="renderPermsList()" style="width:100%;box-sizing:border-box;padding:12px 42px 12px 14px;background:var(--dark2);border:1px solid rgba(27,42,107,0.25);border-radius:10px;color:var(--text);font-family:Tajawal,sans-serif;font-size:13.5px"/>
         </div>
         <div id="perms-list" style="display:flex;flex-direction:column;gap:10px;margin-top:12px"></div>
+      </div>
+
+      <!-- ACTIVITY LOG — سجل النشاط -->
+      <div id="view-activity-log" class="content-view">
+        <div class="page-title">سجل النشاط</div>
+        <div class="page-subtitle">توثيق العمليات الحساسة — من فعل ماذا ومتى (آخر 100 عملية)</div>
+        <div style="display:flex;gap:10px;margin-top:14px;align-items:center">
+          <div style="position:relative;flex:1">
+            <i class="ti ti-search" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:16px"></i>
+            <input type="text" id="activity-log-search" placeholder="ابحث بالاسم أو العملية..." oninput="renderActivityLog()" style="width:100%;box-sizing:border-box;padding:12px 42px 12px 14px;background:var(--dark2);border:1px solid rgba(27,42,107,0.25);border-radius:10px;color:var(--text);font-family:Tajawal,sans-serif;font-size:13.5px"/>
+          </div>
+          <button onclick="renderActivityLog()" style="padding:12px 20px;background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.3);border-radius:10px;color:var(--blue);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap"><i class="ti ti-refresh"></i> تحديث</button>
+        </div>
+        <div id="activity-log-list" style="display:flex;flex-direction:column;gap:9px;margin-top:14px"></div>
       </div>
 
       <!-- BACKUP — النسخ الاحتياطي -->
@@ -4572,6 +4587,10 @@ function showView(n){
   if(n==='backup'){
     if(!currentUser.isAdmin){showToast('هذا القسم للأدمن فقط','red');return;}
   }
+  if(n==='activity-log'){
+    if(!currentUser.isAdmin){showToast('هذا القسم للأدمن فقط','red');return;}
+    renderActivityLog();
+  }
   if(n==='att-admin'){
     if(!currentUser.isAdmin && !currentUser.hasAttAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
     renderAttAdmin();
@@ -5289,6 +5308,7 @@ function folderQuickPrintObj(r){
 }
 
 function folderDeleteReportById(rId, ownerName){
+  logActivity('حذف تقرير', rId, ownerName?('صاحب التقرير: '+ownerName):'');
   if(!currentUser.isAdmin){showToast('صلاحية الحذف للأدمن فقط','red');return;}
   if(!confirm('هل تريد حذف هذا التقرير؟')) return;
   // ابحث عن التقرير قبل الحذف
@@ -6608,6 +6628,7 @@ function toggleAllReportsAccess(userId){
   if(!u) return;
   var name=u.name;
   u.allReportsAccess=!u.allReportsAccess;
+  logActivity((u['allReportsAccess']?'منح صلاحية':'سحب صلاحية'), 'كافة التقارير', 'المنتسب: '+u.name);
   saveActiveUsersPermissions();
   if(u.allReportsAccess){showToast('تم منح صلاحية كافة التقارير لـ '+name,'gold');}
   else{showToast('تم سحب صلاحية كافة التقارير من '+name,'red');}
@@ -6620,6 +6641,7 @@ function toggleAllTypesAccess(userId){
   if(!u) return;
   var name=u.name;
   u.allTypesAccess=!u.allTypesAccess;
+  logActivity((u['allTypesAccess']?'منح صلاحية':'سحب صلاحية'), 'كل أنواع التقارير', 'المنتسب: '+u.name);
   saveActiveUsersPermissions();
   // إذا كان المستخدم الحالي هو نفسه — طبّق الفيلتر فوراً
   if(currentUser.id===userId){ currentUser.allTypesAccess=u.allTypesAccess; filterReportTypesByRank(); }
@@ -6634,6 +6656,7 @@ function toggleReqAccess(userId){
   if(!u) return;
   var name=u.name;
   u.reqAccess=!u.reqAccess;
+  logActivity((u['reqAccess']?'منح صلاحية':'سحب صلاحية'), 'الطلبات', 'المنتسب: '+u.name);
   saveActiveUsersPermissions();
   if(u.reqAccess){showToast('تم منح صلاحية طلبات المنتسبين لـ '+name,'green');}
   else{showToast('تم سحب صلاحية طلبات المنتسبين من '+name,'red');}
@@ -6809,6 +6832,7 @@ function toggleAttAccess(userId){
   if(!u) return;
   var name=u.name;
   u.attAccess=!u.attAccess;
+  logActivity((u['attAccess']?'منح صلاحية':'سحب صلاحية'), 'سجل الحضور', 'المنتسب: '+u.name);
   saveActiveUsersPermissions();
   if(u.attAccess){showToast('تم منح صلاحية سجل الحضور لـ '+name,'green');}
   else{showToast('تم سحب صلاحية سجل الحضور من '+name,'red');}
@@ -6821,6 +6845,7 @@ function toggleFolderAccess(userId){
   if(!u) return;
   var name=u.name;
   u.folderAccess=!u.folderAccess;
+  logActivity((u['folderAccess']?'منح صلاحية':'سحب صلاحية'), 'المجلدات', 'المنتسب: '+u.name);
   saveActiveUsersPermissions();
   if(u.folderAccess){showToast('تم منح صلاحية المجلدات لـ '+name,'green');}
   else{showToast('تم سحب صلاحية المجلدات من '+name,'red');}
@@ -6829,8 +6854,66 @@ function toggleFolderAccess(userId){
 }
 
 
+
+// ===== سجل النشاط =====
+function logActivity(action, target, details){
+  if(!db) return;
+  try{
+    var id='LG'+Date.now()+Math.random().toString(36).slice(2,6).toUpperCase();
+    var d=new Date();
+    db.collection('activityLog').doc(id).set({
+      ts: Date.now(),
+      time: String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),
+      actor: currentUser.name||'غير معروف',
+      action: action||'',
+      target: target||'',
+      details: details||''
+    }).catch(function(){});
+  }catch(e){}
+}
+
+function renderActivityLog(){
+  var el=document.getElementById('activity-log-list');
+  if(!el||!db) return;
+  el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text2)">جاري التحميل...</div>';
+  db.collection('activityLog').orderBy('ts','desc').limit(100).get().then(function(snap){
+    if(snap.empty){
+      el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text2);background:var(--dark3);border:1px dashed rgba(27,42,107,0.25);border-radius:14px">لا توجد أنشطة مسجّلة بعد — يبدأ التسجيل من الآن</div>';
+      return;
+    }
+    var q=(document.getElementById('activity-log-search')?document.getElementById('activity-log-search').value:'').trim().toLowerCase();
+    var html='';
+    var iconFor=function(a){
+      if(a.indexOf('حذف')>=0) return {i:'ti-trash',c:'var(--red)'};
+      if(a.indexOf('رفض')>=0) return {i:'ti-x',c:'var(--red)'};
+      if(a.indexOf('موافقة')>=0||a.indexOf('قبول')>=0) return {i:'ti-check',c:'var(--green)'};
+      if(a.indexOf('صلاحية')>=0) return {i:'ti-shield-lock',c:'var(--purple)'};
+      if(a.indexOf('استعادة')>=0||a.indexOf('نسخة')>=0) return {i:'ti-database-import',c:'#F0883E'};
+      return {i:'ti-activity',c:'var(--blue)'};
+    };
+    snap.forEach(function(doc){
+      var L=doc.data();
+      var line=((L.actor||'')+' '+(L.action||'')+' '+(L.target||'')+' '+(L.details||'')).toLowerCase();
+      if(q&&line.indexOf(q)<0) return;
+      var ic=iconFor(L.action||'');
+      html+='<div style="background:var(--dark3);border:1px solid rgba(27,42,107,0.18);border-radius:12px;padding:13px 16px;display:flex;gap:13px;align-items:flex-start">'+
+        '<i class="ti '+ic.i+'" style="color:'+ic.c+';font-size:18px;margin-top:2px"></i>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:13.5px;color:var(--text)"><strong style="font-family:Cairo,sans-serif">'+escHtml(L.actor||'')+'</strong> '+escHtml(L.action||'')+(L.target?' — <span style="color:var(--gold2)">'+escHtml(L.target)+'</span>':'')+'</div>'+
+          (L.details?'<div style="font-size:12px;color:var(--text2);margin-top:3px">'+escHtml(L.details)+'</div>':'')+
+          '<div style="font-size:11px;color:var(--text2);margin-top:4px;direction:ltr;text-align:right">'+escHtml(L.time||'')+'</div>'+
+        '</div>'+
+      '</div>';
+    });
+    el.innerHTML=html||'<div style="text-align:center;padding:30px;color:var(--text2)">لا توجد نتائج مطابقة</div>';
+  }).catch(function(e){
+    console.error('خطأ تحميل السجل:',e);
+    el.innerHTML='<div style="text-align:center;padding:30px;color:var(--red)">تعذر تحميل السجل</div>';
+  });
+}
+
 // ===== النسخ الاحتياطي =====
-var BACKUP_COLLECTIONS=['reports','requests','system','passwords','userData','attendance','notifications'];
+var BACKUP_COLLECTIONS=['reports','requests','system','passwords','userData','attendance','notifications','activityLog'];
 
 function exportBackup(){
   if(!db){showToast('لا يوجد اتصال بقاعدة البيانات','red');return;}
@@ -6914,6 +6997,7 @@ function _restoreBackup(backup, st, totalDocs){
     if(start>=ops.length){
       if(st) st.innerHTML='✅ <span style="color:var(--green)">تمت الاستعادة بنجاح — '+written+' سجل. حدّث الصفحة لرؤية البيانات.</span>';
       showToast('تمت الاستعادة بنجاح ✅','green');
+      logActivity('استعادة نسخة احتياطية', '', written+' سجل');
       return;
     }
     var batch=db.batch();
@@ -7055,6 +7139,7 @@ function toggleIncidentsAccess(userId){
   if(!u) return;
   var name=u.name;
   u.incidentsAccess=!u.incidentsAccess;
+  logActivity(u.incidentsAccess?'منح صلاحية':'سحب صلاحية','حالة الوقائع','المنتسب: '+u.name);
   saveActiveUsersPermissions();
   if(u.incidentsAccess){showToast('تم منح صلاحية حالة الوقائع لـ '+name,'green');}
   else{showToast('تم سحب صلاحية حالة الوقائع من '+name,'red');}
@@ -7990,6 +8075,7 @@ function openUserProfile(userId){
 
 function deleteCurrentProfileUser(){
   if(!currentProfileUser) return;
+  logActivity('بدء حذف منتسب', currentProfileUser.name, '');
   deleteUser(currentProfileUser.id, currentProfileUser.name);
 }
 
@@ -8160,6 +8246,7 @@ function saveEmpIdFromPerms(userId){
   var v=inp.value.trim();
   if(v.length>20){showToast('الرقم الوظيفي طويل جداً','red');return;}
   u.empId=v;
+  logActivity('تعديل الرقم الوظيفي', u.name, 'الرقم: '+(v||'—'));
   saveActiveUsersPermissions();
   showToast(v?('تم حفظ الرقم الوظيفي لـ '+u.name):'تم مسح الرقم الوظيفي','green');
   if(typeof renderUsersList==="function") renderUsersList();
@@ -8227,6 +8314,7 @@ function renderPendingApprovals(){
 }
 
 function approvePendingUser(id,name,initial){
+  logActivity('قبول منتسب جديد', name, '');
   var sel=document.getElementById('pa-rank-'+id);
   if(!sel||!sel.value){showToast('يجب اختيار رتبة أولاً','red');return;}
   var rank=sel.value;
@@ -8254,6 +8342,8 @@ function approvePendingUser(id,name,initial){
 }
 
 function rejectPendingUser(id){
+  var _pu=(pendingUsers||[]).find(function(p){return p.id===id;});
+  logActivity('رفض طلب انضمام', _pu?_pu.name:id, '');
   pendingUsers=pendingUsers.filter(function(u){return u.id!==id;});
   savePendingUsers();
   showToast('تم رفض الطلب — يمكن للمنتسب التسجيل مجدداً','red');
@@ -8748,6 +8838,7 @@ function deletePAItem(){
   if(!_paCurrentItem) return;
   if(!confirm('هل تريد حذف هذا العنصر من قائمة المعاينة؟')) return;
   var r=_paCurrentItem;
+  logActivity('حذف من قائمة المعاينة', (r.title||r.type||'')+' ('+(r.id||'')+')', '');
   // احذف من localStorage
   try{
     var paKey='jund_pa_inbox_'+currentUser.name;
@@ -8792,6 +8883,7 @@ function closePAModal(){
 
 function decidePAModal(decision){
   if(!_paCurrentItem) return;
+  var _logR=_paCurrentItem;
   if(decision==='rejected'){
     var wrap=document.getElementById('pa-reject-wrap');
     var reasonEl=document.getElementById('pa-reject-reason');
@@ -8806,6 +8898,7 @@ function decidePAModal(decision){
     if(!reason){showToast('يرجى كتابة سبب الرفض','red');if(reasonEl){reasonEl.style.borderColor='var(--red)';reasonEl.focus();}return;}
     _paCurrentItem._rejectReason=reason;
   }
+  logActivity(decision==='approved'?'موافقة على نموذج':'رفض نموذج', (_logR.title||_logR.type||'')+' ('+(_logR.id||'')+')', decision==='rejected'?('السبب: '+(_paCurrentItem._rejectReason||'')):'');
   var now=new Date();
   var dd=String(now.getDate()).padStart(2,'0');
   var mm=String(now.getMonth()+1).padStart(2,'0');
@@ -9876,7 +9969,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.9</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.0</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
