@@ -635,6 +635,14 @@ _authReady.then(function(){
         <div class="page-title">لوحة المتابعة</div>
         <div class="page-subtitle" id="dash-date"></div>
         <div class="stats-grid" id="dash-stats-grid"></div>
+        <div id="dash-online-box" style="display:none;background:var(--dark2);border:1px solid rgba(63,185,80,0.25);border-radius:12px;padding:16px 20px;margin-bottom:18px">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+            <span style="width:9px;height:9px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 6px rgba(63,185,80,0.6)"></span>
+            المتصلون الآن
+            <span id="dash-online-count" style="font-family:Cairo,sans-serif;font-weight:800;color:var(--green)">0</span>
+          </div>
+          <div id="dash-online-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+        </div>
         <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:18px">
           <div style="background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:12px;padding:20px">
             <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px"><i class="ti ti-clock-hour-4" style="color:#6B8FD6"></i> آخر التقارير <span style="font-size:11px;color:var(--text2);font-weight:400;margin-right:auto">اضغط لعرض التفاصيل</span></div>
@@ -3443,6 +3451,8 @@ function startPresence(){
     _presence=(doc.exists&&doc.data())||{};
     var uv=document.getElementById('view-users');
     if(uv&&uv.classList.contains('active')&&typeof renderUsersList==='function') renderUsersList();
+    var dv=document.getElementById('view-dashboard');
+    if(dv&&dv.classList.contains('active')&&typeof renderDashboardOnline==='function') renderDashboardOnline();
   },function(){});
 }
 
@@ -5320,7 +5330,39 @@ function getDashReports(){
 }
 
 var _dashReports=[];
+function renderDashboardOnline(){
+  var box=document.getElementById('dash-online-box');
+  var listEl=document.getElementById('dash-online-list');
+  var cntEl=document.getElementById('dash-online-count');
+  if(!box||!listEl) return;
+  // تظهر للأدمن فقط
+  if(!currentUser.isAdmin){box.style.display='none';return;}
+  var now=Date.now();
+  var online=[];
+  for(var nm in _presence){
+    var ts=_presence[nm]||0;
+    if(ts>0&&(now-ts)<300000) online.push(nm);
+  }
+  online.sort();
+  box.style.display='block';
+  if(cntEl) cntEl.textContent=online.length;
+  if(online.length===0){
+    listEl.innerHTML='<span style="font-size:12px;color:var(--text2)">لا يوجد متصلون حالياً</span>';
+    return;
+  }
+  listEl.innerHTML=online.map(function(nm){
+    var u=(activeUsers||[]).find(function(x){return x.name===nm;});
+    var rank=u?(u.rank||''):'';
+    return '<span style="display:inline-flex;align-items:center;gap:7px;background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.25);border-radius:20px;padding:6px 14px">'+
+      '<span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block"></span>'+
+      '<span style="font-family:Cairo,sans-serif;font-size:12.5px;font-weight:700;color:var(--text)">'+escHtml(nm)+'</span>'+
+      (rank?'<span style="font-size:10.5px;color:var(--text2)">'+escHtml(rank)+'</span>':'')+
+    '</span>';
+  }).join('');
+}
+
 function renderDashboard(){
+  renderDashboardOnline();
   renderMyRequests();
   _dashReports=getDashReports();
   var today=isoToArabicDate(new Date().toISOString().split('T')[0]);
@@ -9677,7 +9719,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.7</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.8</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
