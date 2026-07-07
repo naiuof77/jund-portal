@@ -1375,7 +1375,21 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
       <div id="view-incidents-status" class="content-view">
         <div class="page-title">حالة الوقائع</div>
         <div class="page-subtitle">جميع الوقائع المسجّلة — رقم الطلب وحالة كل واقعة</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 6px">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin:18px 0 4px">
+          <div style="flex:1;min-width:105px;background:rgba(27,42,107,0.08);border:1px solid rgba(27,42,107,0.2);border-radius:12px;padding:14px 10px;text-align:center">
+            <div id="inc-count-total" style="font-family:Cairo,sans-serif;font-size:24px;font-weight:800;color:var(--navy2)">0</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">إجمالي الوقائع</div>
+          </div>
+          <div style="flex:1;min-width:105px;background:rgba(240,136,62,0.08);border:1px solid rgba(240,136,62,0.25);border-radius:12px;padding:14px 10px;text-align:center">
+            <div id="inc-count-open" style="font-family:Cairo,sans-serif;font-size:24px;font-weight:800;color:#F0883E">0</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">⏳ مستمرة</div>
+          </div>
+          <div style="flex:1;min-width:105px;background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.25);border-radius:12px;padding:14px 10px;text-align:center">
+            <div id="inc-count-closed" style="font-family:Cairo,sans-serif;font-size:24px;font-weight:800;color:var(--green)">0</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">✅ مغلقة</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 6px">
           <button class="inc-filter-btn" id="inc-f-all" onclick="filterIncidents('all')" style="padding:8px 18px;border-radius:20px;border:1px solid rgba(27,42,107,0.25);background:var(--navy2);color:#fff;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer">الكل</button>
           <button class="inc-filter-btn" id="inc-f-open" onclick="filterIncidents('open')" style="padding:8px 18px;border-radius:20px;border:1px solid rgba(240,136,62,0.35);background:transparent;color:#F0883E;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer">⏳ مستمرة</button>
           <button class="inc-filter-btn" id="inc-f-closed" onclick="filterIncidents('closed')" style="padding:8px 18px;border-radius:20px;border:1px solid rgba(63,185,80,0.35);background:transparent;color:var(--green);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ مغلقة</button>
@@ -1400,6 +1414,11 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
         <div id="users-list-view">
           <div class="page-title">إدارة المنتسبين</div>
           <div class="page-subtitle">اضغط على أي منتسب لعرض تقاريره وطلباته</div>
+          <div id="users-count-box" style="display:inline-flex;align-items:center;gap:8px;margin-top:12px;background:rgba(88,166,255,0.1);border:1px solid rgba(88,166,255,0.25);border-radius:10px;padding:9px 18px">
+            <i class="ti ti-users" style="color:var(--blue);font-size:17px"></i>
+            <span style="font-size:13px;color:var(--text2)">عدد المنتسبين:</span>
+            <span id="users-count-num" style="font-family:Cairo,sans-serif;font-size:17px;font-weight:800;color:var(--blue)">0</span>
+          </div>
           <div id="users-main-list" style="display:flex;flex-direction:column;gap:10px;margin-top:8px"></div>
         </div>
         <!-- ملف المنتسب -->
@@ -6661,6 +6680,12 @@ function renderIncidentsStatus(){
   var list=(src||[]).filter(function(r){return r&&r.type==='واقعة';});
   // ترتيب: الأحدث أولاً
   list.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+  // تحديث العدّادات (على كامل الوقائع قبل الفلترة)
+  var _tot=list.length;
+  var _open=list.filter(function(r){return (r.incStatus||'open')==='open';}).length;
+  var e1=document.getElementById('inc-count-total'); if(e1) e1.textContent=_tot;
+  var e2=document.getElementById('inc-count-open'); if(e2) e2.textContent=_open;
+  var e3=document.getElementById('inc-count-closed'); if(e3) e3.textContent=(_tot-_open);
   if(_incFilter==='open') list=list.filter(function(r){return (r.incStatus||'open')==='open';});
   if(_incFilter==='closed') list=list.filter(function(r){return r.incStatus==='closed';});
   if(list.length===0){
@@ -7625,6 +7650,8 @@ function loadPendingUsers(){
 // ===== إدارة المنتسبين — قائمة + ملف =====
 function renderUsersList(){
   loadActiveUsersPermissions();
+  var cEl=document.getElementById('users-count-num');
+  if(cEl) cEl.textContent=activeUsers.length;
   var list=document.getElementById('users-main-list');
   if(!list) return;
   if(activeUsers.length===0){
@@ -9535,7 +9562,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.1</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.2</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
