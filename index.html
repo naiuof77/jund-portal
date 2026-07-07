@@ -3518,8 +3518,13 @@ function doLogin(){
       // fallback للـ localStorage
       if(!userData){ try{userData=JSON.parse(localStorage.getItem('jund_user_'+u)||'null');}catch(e){} }
       var name = userData ? userData.name : '';
-      var empId = userData ? userData.empId : '';
+      // اسم الدخول هو الرقم الوظيفي بحكم التسجيل — استخدمه إذا كان الملف ناقصاً
+      var empId = (userData && userData.empId) ? userData.empId : u;
       if(!name){ showToast('تعذّر تحميل بيانات الحساب','red'); return; }
+      // إصلاح ملف المستخدم في Firebase إذا كان الرقم ناقصاً فيه
+      if(userData && !userData.empId){
+        try{ fbSaveUserData(u, {name:name, empId:u, loginUser:u}); }catch(e){}
+      }
 
       // تحميل المنتسبين النشطين والصلاحيات من Firebase
       fbLoadPermissions(function(perms){
@@ -9611,7 +9616,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.5</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.6</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
