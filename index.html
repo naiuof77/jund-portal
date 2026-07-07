@@ -5159,6 +5159,7 @@ function renderFolderContent(){
 }
 
 function _saveEditedReport(newReport, oldId, authorKey){
+  logActivity('تعديل تقرير', (newReport.title||newReport.type||'')+' ('+oldId+')', 'صاحب التقرير: '+(authorKey||''));
   // احفظ الجديد أولاً، وبعد نجاح الحفظ احذف القديم (فقط إذا تغيّر الـ ID)
   // هذا يمنع فقدان التقرير لو فشل أحد الإجراءات
   fbSaveReport(newReport, authorKey).then(function(){
@@ -7101,6 +7102,7 @@ function saveIncNumber(rid){
   if(!inp) return;
   var num=inp.value.trim();
   _patchIncident(rid,{incNumber:num});
+  logActivity('تعديل رقم طلب واقعة', rid, 'الرقم الجديد: '+(num||'—'));
   if(db){
     db.collection('reports').doc(rid).update({incNumber:num}).then(function(){
       showToast(num?'تم حفظ رقم الطلب':'تم مسح رقم الطلب','green');
@@ -7120,6 +7122,7 @@ function toggleIncStatus(rid){
   var r=src.find(function(x){return x&&String(x.id)===String(rid);});
   var newStatus=(r&&r.incStatus==='closed')?'open':'closed';
   _patchIncident(rid,{incStatus:newStatus});
+  logActivity(newStatus==='closed'?'إغلاق واقعة':'إعادة فتح واقعة', (r&&(r.title||''))+' ('+rid+')', '');
   if(db){
     db.collection('reports').doc(rid).update({incStatus:newStatus}).then(function(){
       showToast(newStatus==='closed'?'تم إغلاق الواقعة ✅':'تمت إعادة فتح الواقعة ⏳',newStatus==='closed'?'green':'red');
@@ -7961,6 +7964,7 @@ function bulkApproveAll(){
   var pending=allR.filter(function(r){return r.status==='قيد الانتظار';});
   if(pending.length===0){showToast('لا يوجد طلبات معلقة','gold');return;}
   if(!confirm('هل تريد قبول جميع الطلبات المعلقة ('+pending.length+')?')) return;
+  logActivity('قبول جماعي للطلبات', '', pending.length+' طلب');
   pending.forEach(function(r){
     function updateKey(key){
       try{var s=JSON.parse(localStorage.getItem(key)||'[]');var u=s.map(function(x){return x.id===r.id?Object.assign({},x,{status:'موافق عليه'}):x;});localStorage.setItem(key,JSON.stringify(u));}catch(e){}
@@ -7973,6 +7977,7 @@ function bulkApproveAll(){
 }
 
 function approveReqApprove(reqId, ownerName){
+  logActivity('قبول طلب', reqId, 'صاحب الطلب: '+(ownerName||''));
   db.collection('requests').doc(reqId).update({status:'موافق عليه',statusCls:'status-approved'}).catch(function(e){console.error(e);});
   renderReqApprove();
   showToast('✅ تم قبول الطلب','green');
@@ -7980,6 +7985,7 @@ function approveReqApprove(reqId, ownerName){
 
 function rejectReqApprove(reqId, ownerName, rejectReason){
   var reason=rejectReason||'';
+  logActivity('رفض طلب', reqId, 'صاحب الطلب: '+(ownerName||'')+(reason?(' — السبب: '+reason):''));
   var now=new Date();
   var decTime=String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear()+' — '+now.toTimeString().slice(0,5);
   db.collection('requests').doc(reqId).update({status:'مرفوض',statusCls:'status-rejected',rejectReason:reason,paDecidedBy:currentUser.name,paDecidedAt:decTime}).catch(function(e){console.error(e);});
@@ -9969,7 +9975,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.0</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.1</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
