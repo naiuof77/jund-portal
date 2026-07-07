@@ -581,6 +581,7 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
       </div>
       <div class="sidebar-section">المتابعة</div>
       <div class="sidebar-item" id="nav-alerts" onclick="showView('alerts')"><i class="ti ti-bell"></i> التنبيهات <span class="badge-count" id="alerts-badge" style="display:none"></span></div>
+      <div class="sidebar-item" id="nav-incidents-status" onclick="showView('incidents-status')"><i class="ti ti-alert-circle"></i> حالة الوقائع</div>
       <div class="sidebar-item" id="nav-attendance" onclick="showView('attendance')" style="display:none"><i class="ti ti-map-pin-check"></i> الحضور والانصراف</div>
       <div class="sidebar-item" id="nav-my-tracking" onclick="showView('my-tracking')"><i class="ti ti-clipboard-check"></i> متابعة الطلبات <span class="badge-count" id="my-req-status-badge" style="display:none"></span></div>
       <div class="sidebar-item" id="nav-preview-approve" onclick="showView('preview-approve')" style="display:none"><i class="ti ti-eye-check"></i> المعاينة والقبول <span class="badge-count" id="pa-nav-badge" style="display:none"></span></div>
@@ -1369,6 +1370,15 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
       </div>
 
       <!-- ALERTS -->
+      <div id="view-incidents-status" class="content-view">
+        <div class="page-title">حالة الوقائع</div>
+        <div class="page-subtitle">متابعة حالة الوقائع الأمنية</div>
+        <div id="incidents-status-content" style="margin-top:24px;text-align:center;padding:60px 20px;background:var(--dark3);border:1px dashed rgba(27,42,107,0.25);border-radius:14px">
+          <div style="font-size:44px;margin-bottom:14px">🚧</div>
+          <div style="font-family:Cairo,sans-serif;font-size:17px;font-weight:700;color:var(--text)">هذا القسم قيد الإعداد</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:8px">سيتم تفعيله قريباً</div>
+        </div>
+      </div>
       <div id="view-alerts" class="content-view">
         <div class="page-title">التنبيهات والإشعارات</div>
         <div class="page-subtitle" id="alerts-subtitle">جاري تحميل التنبيهات...</div>
@@ -9388,7 +9398,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v7.8</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v7.9</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
