@@ -3416,7 +3416,63 @@ function applyMobileMode(){
   }
 }
 
+
+// ===== الحالة الآن (Presence) — من متصل بالموقع =====
+var _presence={};
+var _presenceTimer=null;
+var _presenceUnsub=null;
+
+function _presenceBeat(){
+  if(!db||!currentUser.name) return;
+  var upd={};
+  upd[currentUser.name]=Date.now();
+  db.collection('system').doc('presence').set(upd,{merge:true}).catch(function(){});
+}
+
+function startPresence(){
+  if(!db||!currentUser.name) return;
+  _presenceBeat();
+  if(_presenceTimer) clearInterval(_presenceTimer);
+  _presenceTimer=setInterval(_presenceBeat, 120000); // كل دقيقتين
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState==='visible') _presenceBeat();
+  });
+  // مستمع لحظي لحالة الجميع (للأدمن ولأصحاب الصلاحيات تُعرض في القوائم)
+  if(_presenceUnsub){try{_presenceUnsub();}catch(e){}}
+  _presenceUnsub=db.collection('system').doc('presence').onSnapshot(function(doc){
+    _presence=(doc.exists&&doc.data())||{};
+    var uv=document.getElementById('view-users');
+    if(uv&&uv.classList.contains('active')&&typeof renderUsersList==='function') renderUsersList();
+  },function(){});
+}
+
+function stopPresence(){
+  if(_presenceTimer){clearInterval(_presenceTimer);_presenceTimer=null;}
+  if(_presenceUnsub){try{_presenceUnsub();}catch(e){}_presenceUnsub=null;}
+  if(db&&currentUser.name){
+    var upd={};
+    upd[currentUser.name]=0; // صفر = خرج
+    db.collection('system').doc('presence').set(upd,{merge:true}).catch(function(){});
+  }
+}
+
+function presenceBadge(name){
+  var ts=_presence[name]||0;
+  var online=ts>0&&(Date.now()-ts)<300000; // متصل إذا آخر نبضة قبل أقل من 5 دقائق
+  if(online){
+    return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--green);background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);border-radius:20px;padding:3px 10px"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block"></span> متصل الآن</span>';
+  }
+  if(ts>0){
+    var d=new Date(ts);
+    var hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0');
+    var dd=String(d.getDate()).padStart(2,'0'), mo=String(d.getMonth()+1).padStart(2,'0');
+    return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);background:rgba(27,42,107,0.06);border:1px solid rgba(27,42,107,0.15);border-radius:20px;padding:3px 10px"><span style="width:7px;height:7px;border-radius:50%;background:#8b949e;display:inline-block"></span> آخر ظهور '+hh+':'+mm+' — '+dd+'/'+mo+'</span>';
+  }
+  return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);background:rgba(27,42,107,0.06);border:1px solid rgba(27,42,107,0.15);border-radius:20px;padding:3px 10px"><span style="width:7px;height:7px;border-radius:50%;background:#8b949e;display:inline-block"></span> غير متصل</span>';
+}
+
 function doLogout(){
+  stopPresence();
   // امسح الجلسة المحفوظة حتى لا يعود الدخول التلقائي بعد تحديث الصفحة
   try{ sessionStorage.removeItem('jund_session'); }catch(e){}
   // أوقف المستمعات بشكل صحيح (كل مستمع Firebase هو دالة تُستدعى لإلغاء الاشتراك)
@@ -3620,6 +3676,9 @@ function _finishLogin(u,a,name,empId,perms,fixedData){
   // ابدأ مستمعات الوقت الفعلي
   if(a || isManager || currentUser.hasAllReportsAccess) startAdminListeners();
   else startUserListener(name);
+
+  // ابدأ نبض الحالة (متصل الآن)
+  startPresence();
 
   // احفظ الجلسة حتى لا يخرج المستخدم عند تحديث الصفحة
   try{
@@ -7710,6 +7769,7 @@ function renderUsersList(){
         '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
           '<span class="rank-badge '+rankCls+'" style="font-size:11px">'+escHtml(u.rank||'')+'</span>'+
           (u.empId?'<span style="font-size:12px;color:var(--text2)">'+escHtml(u.empId||'')+'</span>':'')+
+          presenceBadge(u.name)+
           badges+
         '</div>'+
       '</div>'+
@@ -7733,6 +7793,7 @@ function openUserProfile(userId){
   document.getElementById('uprofile-meta').innerHTML=
     '<span class="rank-badge '+rankCls+'">'+escHtml(u.rank||'')+'</span>'+
     (u.empId?'<span style="color:var(--text2)"><i class="ti ti-id-badge" style="font-size:13px"></i> '+escHtml(u.empId||'')+'</span>':'')+
+    presenceBadge(u.name)+
     '<span style="color:var(--text2)"><i class="ti ti-report" style="font-size:13px"></i> التقارير والطلبات</span>';
   switchProfileTab('reports');
 }
@@ -9616,7 +9677,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.6</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.7</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
