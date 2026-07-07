@@ -1374,12 +1374,13 @@ db.collection('passwords').doc('naiuof77').get().then(function(doc){
       <!-- ALERTS -->
       <div id="view-incidents-status" class="content-view">
         <div class="page-title">حالة الوقائع</div>
-        <div class="page-subtitle">متابعة حالة الوقائع الأمنية</div>
-        <div id="incidents-status-content" style="margin-top:24px;text-align:center;padding:60px 20px;background:var(--dark3);border:1px dashed rgba(27,42,107,0.25);border-radius:14px">
-          <div style="font-size:44px;margin-bottom:14px">🚧</div>
-          <div style="font-family:Cairo,sans-serif;font-size:17px;font-weight:700;color:var(--text)">هذا القسم قيد الإعداد</div>
-          <div style="font-size:13px;color:var(--text2);margin-top:8px">سيتم تفعيله قريباً</div>
+        <div class="page-subtitle">جميع الوقائع المسجّلة — رقم الطلب وحالة كل واقعة</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 6px">
+          <button class="inc-filter-btn" id="inc-f-all" onclick="filterIncidents('all')" style="padding:8px 18px;border-radius:20px;border:1px solid rgba(27,42,107,0.25);background:var(--navy2);color:#fff;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer">الكل</button>
+          <button class="inc-filter-btn" id="inc-f-open" onclick="filterIncidents('open')" style="padding:8px 18px;border-radius:20px;border:1px solid rgba(240,136,62,0.35);background:transparent;color:#F0883E;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer">⏳ مستمرة</button>
+          <button class="inc-filter-btn" id="inc-f-closed" onclick="filterIncidents('closed')" style="padding:8px 18px;border-radius:20px;border:1px solid rgba(63,185,80,0.35);background:transparent;color:var(--green);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ مغلقة</button>
         </div>
+        <div id="incidents-status-content" style="margin-top:14px"></div>
       </div>
       <div id="view-alerts" class="content-view">
         <div class="page-title">التنبيهات والإشعارات</div>
@@ -4411,6 +4412,7 @@ function showView(n){
   if(n==='attendance'){showView_attendance();}
   if(n==='incidents-status'){
     if(!currentUser.isAdmin && !currentUser.hasIncidentsAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
+    filterIncidents('all');
   }
   if(n==='att-admin'){
     if(!currentUser.isAdmin && !currentUser.hasAttAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
@@ -6634,6 +6636,116 @@ function toggleFolderAccess(userId){
   else{showToast('تم سحب صلاحية المجلدات من '+name,'red');}
   if(typeof renderUsersList==="function") renderUsersList();
   reopenPermsModal(userId, name);
+}
+
+// ===== حالة الوقائع =====
+var _incFilter='all';
+
+function filterIncidents(f){
+  _incFilter=f;
+  ['all','open','closed'].forEach(function(k){
+    var b=document.getElementById('inc-f-'+k);
+    if(!b) return;
+    var active=(k===f);
+    if(k==='all'){b.style.background=active?'var(--navy2)':'transparent';b.style.color=active?'#fff':'var(--text2)';}
+    if(k==='open'){b.style.background=active?'rgba(240,136,62,0.18)':'transparent';}
+    if(k==='closed'){b.style.background=active?'rgba(63,185,80,0.18)':'transparent';}
+  });
+  renderIncidentsStatus();
+}
+
+function renderIncidentsStatus(){
+  var el=document.getElementById('incidents-status-content');
+  if(!el) return;
+  var src=(currentUser.isAdmin||currentUser.hasIncidentsAccess)?_allReportsCache:_myReportsCache;
+  var list=(src||[]).filter(function(r){return r&&r.type==='واقعة';});
+  // ترتيب: الأحدث أولاً
+  list.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+  if(_incFilter==='open') list=list.filter(function(r){return (r.incStatus||'open')==='open';});
+  if(_incFilter==='closed') list=list.filter(function(r){return r.incStatus==='closed';});
+  if(list.length===0){
+    el.innerHTML='<div style="color:var(--text2);padding:40px;text-align:center;background:var(--dark3);border:1px dashed rgba(27,42,107,0.25);border-radius:14px">لا توجد وقائع'+(_incFilter==='open'?' مستمرة':(_incFilter==='closed'?' مغلقة':''))+'</div>';
+    return;
+  }
+  var openCount=list.filter(function(r){return (r.incStatus||'open')==='open';}).length;
+  var html='<div style="margin-bottom:14px;color:var(--text2);font-size:13px">'+list.length+' واقعة'+(_incFilter==='all'?' — منها '+openCount+' مستمرة':'')+'</div>';
+  list.forEach(function(r){
+    var isClosed=(r.incStatus==='closed');
+    var rj=JSON.stringify(r).replace(/'/g,"&#39;").replace(/"/g,'&quot;');
+    var rid=String(r.id).replace(/'/g,'');
+    html+='<div data-r="'+rj+'" style="background:var(--dark3);border:1px solid '+(isClosed?'rgba(63,185,80,0.3)':'rgba(240,136,62,0.35)')+';border-radius:14px;padding:16px;margin-bottom:12px">'+
+      '<div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">'+
+        '<div style="flex:1;min-width:200px;cursor:pointer" onclick="openReport(JSON.parse(this.parentElement.parentElement.dataset.r))">'+
+          '<div style="font-family:Cairo,sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">🚨 '+escHtml(r.title||'واقعة')+'</div>'+
+          '<div style="font-size:11.5px;color:var(--text2)">'+escHtml(r.date||'')+' — '+escHtml(r.time||'')+' — '+escHtml(r.author||'')+'</div>'+
+        '</div>'+
+        '<span style="padding:5px 14px;border-radius:20px;font-family:Cairo,sans-serif;font-size:12px;font-weight:700;white-space:nowrap;'+(isClosed?'background:rgba(63,185,80,0.12);color:var(--green);border:1px solid rgba(63,185,80,0.3)':'background:rgba(240,136,62,0.12);color:#F0883E;border:1px solid rgba(240,136,62,0.3)')+'">'+(isClosed?'✅ مغلقة':'⏳ مستمرة')+'</span>'+
+      '</div>'+
+      '<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center">'+
+        '<div style="display:flex;gap:8px;align-items:center;flex:1;min-width:220px">'+
+          '<span style="font-size:12px;color:var(--text2);white-space:nowrap">رقم الطلب:</span>'+
+          '<input type="text" id="inc-num-'+rid+'" value="'+escHtml(r.incNumber||'')+'" placeholder="لم يُحدد بعد..." style="flex:1;min-width:0;padding:8px 12px;background:rgba(27,42,107,0.08);border:1px solid rgba(27,42,107,0.25);border-radius:8px;color:var(--text);font-family:Tajawal,sans-serif;font-size:13px;direction:ltr;text-align:right"/>'+
+          '<button onclick="saveIncNumber(\''+rid+'\')" style="padding:8px 14px;background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.3);border-radius:8px;color:var(--blue);font-family:Cairo,sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap"><i class="ti ti-device-floppy"></i> حفظ</button>'+
+        '</div>'+
+        '<button onclick="toggleIncStatus(\''+rid+'\')" style="padding:8px 16px;border-radius:8px;font-family:Cairo,sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;'+(isClosed?'background:rgba(240,136,62,0.12);border:1px solid rgba(240,136,62,0.35);color:#F0883E':'background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.35);color:var(--green)')+'">'+(isClosed?'⏳ إعادة فتح الواقعة':'✅ إغلاق الواقعة')+'</button>'+
+      '</div>'+
+    '</div>';
+  });
+  el.innerHTML=html;
+}
+
+function _patchIncident(rid,fields){
+  function patch(arr){
+    (arr||[]).forEach(function(r){
+      if(r&&String(r.id)===String(rid)){ for(var k in fields){ r[k]=fields[k]; } }
+    });
+  }
+  patch(_allReportsCache); patch(_myReportsCache);
+  try{
+    var key='jund_reports_'+currentUser.name;
+    var mine=JSON.parse(localStorage.getItem(key)||'[]');
+    var ch=false;
+    mine.forEach(function(r){ if(r&&String(r.id)===String(rid)){ for(var k in fields){ r[k]=fields[k]; } ch=true; } });
+    if(ch) localStorage.setItem(key,JSON.stringify(mine));
+  }catch(e){}
+}
+
+function saveIncNumber(rid){
+  var inp=document.getElementById('inc-num-'+rid);
+  if(!inp) return;
+  var num=inp.value.trim();
+  _patchIncident(rid,{incNumber:num});
+  if(db){
+    db.collection('reports').doc(rid).update({incNumber:num}).then(function(){
+      showToast(num?'تم حفظ رقم الطلب':'تم مسح رقم الطلب','green');
+      renderIncidentsStatus();
+    }).catch(function(e){
+      console.error('خطأ حفظ رقم الطلب:',e);
+      showToast('تعذر الحفظ، تحقق من الاتصال','red');
+    });
+  } else {
+    showToast('تم حفظ رقم الطلب','green');
+    renderIncidentsStatus();
+  }
+}
+
+function toggleIncStatus(rid){
+  var src=(_allReportsCache||[]).concat(_myReportsCache||[]);
+  var r=src.find(function(x){return x&&String(x.id)===String(rid);});
+  var newStatus=(r&&r.incStatus==='closed')?'open':'closed';
+  _patchIncident(rid,{incStatus:newStatus});
+  if(db){
+    db.collection('reports').doc(rid).update({incStatus:newStatus}).then(function(){
+      showToast(newStatus==='closed'?'تم إغلاق الواقعة ✅':'تمت إعادة فتح الواقعة ⏳',newStatus==='closed'?'green':'red');
+      renderIncidentsStatus();
+    }).catch(function(e){
+      console.error('خطأ تحديث حالة الواقعة:',e);
+      showToast('تعذر التحديث، تحقق من الاتصال','red');
+    });
+  } else {
+    showToast(newStatus==='closed'?'تم إغلاق الواقعة ✅':'تمت إعادة فتح الواقعة ⏳',newStatus==='closed'?'green':'red');
+    renderIncidentsStatus();
+  }
 }
 
 function toggleIncidentsAccess(userId){
@@ -9423,7 +9535,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.0</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.1</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
