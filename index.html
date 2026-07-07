@@ -622,6 +622,7 @@ _authReady.then(function(){
         <div class="sidebar-item" id="nav-users" onclick="showView('users')"><i class="ti ti-users"></i> إدارة المنتسبين</div>
         <div class="sidebar-item" id="nav-permissions" onclick="showView('permissions')"><i class="ti ti-shield-lock"></i> صلاحيات المنتسبين</div>
         <div class="sidebar-item" id="nav-pending-approvals" onclick="showView('pending-approvals')"><i class="ti ti-user-check"></i> قبول المنتسبين <span class="badge-count" id="pending-approvals-badge" style="display:none"></span></div>
+        <div class="sidebar-item" id="nav-backup" onclick="showView('backup')"><i class="ti ti-database-export"></i> النسخ الاحتياطي</div>
       </div>
       <div class="sidebar-section">الإعدادات</div>
       <div class="sidebar-item" onclick="openSignatureModal()" id="nav-signature"><i class="ti ti-signature"></i> توقيعي <span id="sig-saved-dot" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;vertical-align:middle;margin-right:4px"></span></div>
@@ -1488,6 +1489,27 @@ _authReady.then(function(){
           <input type="text" id="perms-search" placeholder="ابحث بالاسم أو الرقم الوظيفي..." oninput="renderPermsList()" style="width:100%;box-sizing:border-box;padding:12px 42px 12px 14px;background:var(--dark2);border:1px solid rgba(27,42,107,0.25);border-radius:10px;color:var(--text);font-family:Tajawal,sans-serif;font-size:13.5px"/>
         </div>
         <div id="perms-list" style="display:flex;flex-direction:column;gap:10px;margin-top:12px"></div>
+      </div>
+
+      <!-- BACKUP — النسخ الاحتياطي -->
+      <div id="view-backup" class="content-view">
+        <div class="page-title">النسخ الاحتياطي</div>
+        <div class="page-subtitle">تصدير واستيراد جميع بيانات البوابة — التقارير والطلبات والمنتسبين والإعدادات</div>
+
+        <div style="background:var(--dark2);border:1px solid rgba(63,185,80,0.3);border-radius:14px;padding:22px;margin-top:20px">
+          <div style="font-family:Cairo,sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px"><i class="ti ti-download" style="color:var(--green)"></i> تصدير نسخة احتياطية</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.9;margin-bottom:16px">ينزّل ملفاً واحداً يحتوي كل بيانات البوابة من قاعدة البيانات. احتفظ بالملف في مكان آمن (جهازك أو تخزين سحابي). يُنصح بأخذ نسخة أسبوعياً.</div>
+          <button onclick="exportBackup()" id="backup-export-btn" style="padding:12px 26px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.4);border-radius:10px;color:var(--green);font-family:Cairo,sans-serif;font-size:14px;font-weight:800;cursor:pointer"><i class="ti ti-database-export"></i> تصدير الآن</button>
+          <div id="backup-export-status" style="font-size:12.5px;color:var(--text2);margin-top:12px"></div>
+        </div>
+
+        <div style="background:var(--dark2);border:1px solid rgba(240,136,62,0.3);border-radius:14px;padding:22px;margin-top:16px">
+          <div style="font-family:Cairo,sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px"><i class="ti ti-upload" style="color:#F0883E"></i> استعادة من نسخة احتياطية</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.9;margin-bottom:16px">⚠️ الاستعادة تكتب بيانات النسخة فوق البيانات الحالية في قاعدة البيانات. استخدمها فقط عند فقدان بيانات أو الانتقال لمشروع جديد.</div>
+          <input type="file" id="backup-import-file" accept=".json" style="display:none" onchange="importBackupFile(this)"/>
+          <button onclick="document.getElementById('backup-import-file').click()" style="padding:12px 26px;background:rgba(240,136,62,0.12);border:1px solid rgba(240,136,62,0.4);border-radius:10px;color:#F0883E;font-family:Cairo,sans-serif;font-size:14px;font-weight:800;cursor:pointer"><i class="ti ti-file-upload"></i> اختيار ملف النسخة</button>
+          <div id="backup-import-status" style="font-size:12.5px;color:var(--text2);margin-top:12px"></div>
+        </div>
       </div>
 
       <!-- PENDING APPROVALS — قبول المنتسبين -->
@@ -4547,6 +4569,9 @@ function showView(n){
     if(!currentUser.isAdmin && !currentUser.hasIncidentsAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
     filterIncidents('all');
   }
+  if(n==='backup'){
+    if(!currentUser.isAdmin){showToast('هذا القسم للأدمن فقط','red');return;}
+  }
   if(n==='att-admin'){
     if(!currentUser.isAdmin && !currentUser.hasAttAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
     renderAttAdmin();
@@ -6801,6 +6826,112 @@ function toggleFolderAccess(userId){
   else{showToast('تم سحب صلاحية المجلدات من '+name,'red');}
   if(typeof renderUsersList==="function") renderUsersList();
   reopenPermsModal(userId, name);
+}
+
+
+// ===== النسخ الاحتياطي =====
+var BACKUP_COLLECTIONS=['reports','requests','system','passwords','userData','attendance','notifications'];
+
+function exportBackup(){
+  if(!db){showToast('لا يوجد اتصال بقاعدة البيانات','red');return;}
+  var btn=document.getElementById('backup-export-btn');
+  var st=document.getElementById('backup-export-status');
+  if(btn) btn.disabled=true;
+  var backup={_meta:{app:'jund-portal',version:1,exportedAt:new Date().toISOString(),by:currentUser.name},collections:{}};
+  var done=0, totalDocs=0;
+  if(st) st.textContent='جاري التصدير... 0 من '+BACKUP_COLLECTIONS.length+' مجموعات';
+  var chain=Promise.resolve();
+  BACKUP_COLLECTIONS.forEach(function(col){
+    chain=chain.then(function(){
+      return db.collection(col).get().then(function(snap){
+        var docs={};
+        snap.forEach(function(d){docs[d.id]=d.data();});
+        backup.collections[col]=docs;
+        totalDocs+=snap.size;
+        done++;
+        if(st) st.textContent='جاري التصدير... '+done+' من '+BACKUP_COLLECTIONS.length+' مجموعات ('+totalDocs+' سجل)';
+      });
+    });
+  });
+  chain.then(function(){
+    var json=JSON.stringify(backup);
+    var blob=new Blob([json],{type:'application/json'});
+    var d=new Date();
+    var fname='jund-backup-'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'.json';
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=fname;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+    var sizeMb=(json.length/1048576).toFixed(2);
+    if(st) st.innerHTML='✅ <span style="color:var(--green)">تم التصدير بنجاح — '+totalDocs+' سجل ('+sizeMb+' م.ب) — الملف: '+fname+'</span>';
+    if(btn) btn.disabled=false;
+    showToast('تم تنزيل النسخة الاحتياطية','green');
+  }).catch(function(e){
+    console.error('خطأ التصدير:',e);
+    if(st) st.innerHTML='❌ <span style="color:var(--red)">فشل التصدير: '+(e.message||e)+'</span>';
+    if(btn) btn.disabled=false;
+    showToast('فشل التصدير','red');
+  });
+}
+
+function importBackupFile(input){
+  var file=input.files&&input.files[0];
+  input.value='';
+  if(!file) return;
+  var st=document.getElementById('backup-import-status');
+  var reader=new FileReader();
+  reader.onload=function(){
+    var backup;
+    try{ backup=JSON.parse(reader.result); }catch(e){ if(st) st.innerHTML='❌ <span style="color:var(--red)">الملف ليس نسخة احتياطية صالحة</span>'; return; }
+    if(!backup||!backup._meta||backup._meta.app!=='jund-portal'||!backup.collections){
+      if(st) st.innerHTML='❌ <span style="color:var(--red)">الملف ليس نسخة احتياطية من بوابة جُنْد</span>';
+      return;
+    }
+    var totalDocs=0;
+    for(var col in backup.collections){ totalDocs+=Object.keys(backup.collections[col]).length; }
+    var when=backup._meta.exportedAt?backup._meta.exportedAt.slice(0,10):'غير معروف';
+    if(!confirm('نسخة بتاريخ: '+when+'\nعدد السجلات: '+totalDocs+'\n\n⚠️ سيتم كتابة بيانات النسخة فوق البيانات الحالية.\nهل تريد المتابعة؟')) return;
+    _restoreBackup(backup, st, totalDocs);
+  };
+  reader.readAsText(file);
+}
+
+function _restoreBackup(backup, st, totalDocs){
+  if(!db){showToast('لا يوجد اتصال بقاعدة البيانات','red');return;}
+  // بناء قائمة عمليات الكتابة
+  var ops=[];
+  for(var col in backup.collections){
+    var docs=backup.collections[col];
+    for(var id in docs){ ops.push({col:col,id:id,data:docs[id]}); }
+  }
+  var written=0;
+  if(st) st.textContent='جاري الاستعادة... 0 من '+ops.length;
+  // كتابة على دفعات (حد Firestore: 500 عملية للدفعة)
+  function writeChunk(start){
+    if(start>=ops.length){
+      if(st) st.innerHTML='✅ <span style="color:var(--green)">تمت الاستعادة بنجاح — '+written+' سجل. حدّث الصفحة لرؤية البيانات.</span>';
+      showToast('تمت الاستعادة بنجاح ✅','green');
+      return;
+    }
+    var batch=db.batch();
+    var end=Math.min(start+400, ops.length);
+    for(var i=start;i<end;i++){
+      batch.set(db.collection(ops[i].col).doc(ops[i].id), ops[i].data);
+    }
+    batch.commit().then(function(){
+      written=end;
+      if(st) st.textContent='جاري الاستعادة... '+written+' من '+ops.length;
+      writeChunk(end);
+    }).catch(function(e){
+      console.error('خطأ الاستعادة:',e);
+      if(st) st.innerHTML='❌ <span style="color:var(--red)">فشلت الاستعادة عند السجل '+written+': '+(e.message||e)+'</span>';
+      showToast('فشلت الاستعادة','red');
+    });
+  }
+  writeChunk(0);
 }
 
 // ===== حالة الوقائع =====
