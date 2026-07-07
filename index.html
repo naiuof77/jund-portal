@@ -1712,13 +1712,16 @@ _authReady.then(function(){
           <input id="all-reports-search" class="form-ip" type="text" placeholder="ابحث بالرقم أو العنوان أو الاسم أو النوع..." style="flex:1;min-width:200px;padding:10px 14px" oninput="renderAllReports()"/>
           <select id="all-reports-filter" class="form-ip" style="width:auto;padding:10px 14px;font-size:13px" onchange="renderAllReports()">
             <option value="">كل الأنواع</option>
-            <option value="حادثة">حادثة</option>
-            <option value="يومي">يومي</option>
-            <option value="زوار">زوار</option>
-            <option value="دورية">دورية</option>
             <option value="واقعة">واقعة</option>
             <option value="افادة">افادة</option>
+            <option value="جولات دورية">جولات دورية</option>
             <option value="استلام و تسليم دورية">استلام و تسليم دورية</option>
+            <option value="زيارات CCTV">زيارات CCTV</option>
+            <option value="تقرير CCTV">تقرير CCTV</option>
+            <option value="المفاتيح">المفاتيح</option>
+            <option value="استلام وتسليم المفاتيح">استلام وتسليم المفاتيح</option>
+            <option value="استلام الوردية للمشرفين">استلام الوردية للمشرفين</option>
+            <option value="مخالفات مرورية">مخالفات مرورية</option>
           </select>
         </div>
         <div id="all-reports-list" class="report-list"></div>
@@ -9583,7 +9586,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.3</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v8.4</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
