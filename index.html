@@ -2117,10 +2117,9 @@ function arabicToIso(d){
 
 function openEditInForm(r){
   if(!r) return;
-  _editingReport = r;
-
-  // انتقل لصفحة النموذج
+  // مهم: افتح الصفحة أولاً (لأنها تصفّر وضع التعديل) ثم اضبط وضع التعديل
   showView('new-report');
+  _editingReport = r;
   selectReportType(r.type);
 
   // غيّر عنوان الصفحة ليوضح أننا في وضع التعديل
@@ -4193,6 +4192,7 @@ function sendReport(){
     newReport.owner    = _editingReport.owner;
     newReport.status   = _editingReport.status;
     newReport.statusCls= _editingReport.statusCls;
+    if(_editingReport.empId) newReport.empId = _editingReport.empId;
     newReport.editedByAdmin = true;
     newReport.editedAt = new Date().toLocaleString('ar-SA');
     _saveEditedReport(newReport, _editingReport.id, _editingReport.author);
@@ -5878,6 +5878,7 @@ function submitShiftHandover(){
   if(_editingReport){
     newReport.id=_editingReport.id; newReport.author=_editingReport.author; newReport.owner=_editingReport.owner;
     newReport.status=_editingReport.status; newReport.statusCls=_editingReport.statusCls;
+    if(_editingReport.empId) newReport.empId=_editingReport.empId;
     newReport.editedByAdmin=true; newReport.editedAt=new Date().toLocaleString('ar-SA');
     _saveEditedReport(newReport, _editingReport.id, _editingReport.author); _editingReport=null;
   } else {
@@ -5946,6 +5947,7 @@ function sendKeysHandoverReport(){
   if(_editingReport){
     newReport.id=_editingReport.id; newReport.author=_editingReport.author; newReport.owner=_editingReport.owner;
     newReport.status=_editingReport.status; newReport.statusCls=_editingReport.statusCls;
+    if(_editingReport.empId) newReport.empId=_editingReport.empId;
     newReport.editedByAdmin=true; newReport.editedAt=new Date().toLocaleString('ar-SA');
     _saveEditedReport(newReport, _editingReport.id, _editingReport.author);
     _editingReport=null;
@@ -6010,6 +6012,7 @@ function sendKeysReport(){
   if(_editingReport){
     newReport.id=_editingReport.id; newReport.author=_editingReport.author; newReport.owner=_editingReport.owner;
     newReport.status=_editingReport.status; newReport.statusCls=_editingReport.statusCls;
+    if(_editingReport.empId) newReport.empId=_editingReport.empId;
     newReport.editedByAdmin=true; newReport.editedAt=new Date().toLocaleString('ar-SA');
     _saveEditedReport(newReport, _editingReport.id, _editingReport.author);
     _editingReport=null;
@@ -6807,6 +6810,7 @@ function submitTrafficViolation(){
   if(_editingReport){
     newReport.id=_editingReport.id; newReport.author=_editingReport.author; newReport.owner=_editingReport.owner;
     newReport.status=_editingReport.status; newReport.statusCls=_editingReport.statusCls;
+    if(_editingReport.empId) newReport.empId=_editingReport.empId;
     newReport.editedByAdmin=true; newReport.editedAt=new Date().toLocaleString('ar-SA');
     _saveEditedReport(newReport, _editingReport.id, _editingReport.author);
     _editingReport=null;
@@ -9975,7 +9979,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.1</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.2</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
