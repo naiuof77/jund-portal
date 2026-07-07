@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#1B2A6B"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="جُنْد"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="icon" type="image/png" href="icon-192.png"/>
 <title>بوابة جُنْد الأمنية</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet"/>
@@ -530,6 +537,9 @@ _authReady.then(function(){
       <div class="logo-divider-v"></div>
       <img id="login-amaad-logo" style="height:80px;width:auto;object-fit:contain" alt="AMAAD"/>
     </div>
+    <button id="pwa-install-btn" onclick="pwaInstall()" style="display:none;width:100%;box-sizing:border-box;margin:14px 0 2px;padding:12px 18px;background:linear-gradient(135deg,rgba(201,168,76,0.16),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.45);border-radius:12px;color:var(--gold2);font-family:Cairo,sans-serif;font-size:14px;font-weight:800;cursor:pointer;display:none;align-items:center;justify-content:center;gap:9px">
+      <i class="ti ti-device-mobile-down" style="font-size:18px"></i> تثبيت التطبيق على جهازك
+    </button>
     <div class="logo-sub">بوابة الأمن المتكاملة — نظام التقارير الرسمية</div>
     <div class="divider"></div>
     <div class="tabs">
@@ -9979,7 +9989,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.2</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.3</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
@@ -10279,5 +10289,65 @@ function startUserListener(userName){
   }catch(e){ console.warn('session restore error:', e); }
 })();
 
+</script>
+
+<script>
+// ===== PWA: تسجيل عامل الخدمة + زر التثبيت =====
+var _pwaPrompt=null;
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(e){ console.warn('SW:', e); });
+  });
+}
+
+function _pwaIsStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+}
+
+function _pwaIsIOS(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+
+// أندرويد/كروم: يظهر الزر عند جاهزية التثبيت
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  _pwaPrompt=e;
+  if(_pwaIsStandalone()) return;
+  var btn=document.getElementById('pwa-install-btn');
+  if(btn) btn.style.display='flex';
+});
+
+// آيفون: ما فيه اقتراح تلقائي — نظهر الزر مع إرشادات
+window.addEventListener('load', function(){
+  if(_pwaIsIOS() && !_pwaIsStandalone()){
+    var btn=document.getElementById('pwa-install-btn');
+    if(btn) btn.style.display='flex';
+  }
+});
+
+function pwaInstall(){
+  if(_pwaPrompt){
+    _pwaPrompt.prompt();
+    _pwaPrompt.userChoice.then(function(choice){
+      if(choice.outcome==='accepted'){
+        showToast('✅ تم تثبيت التطبيق — ابحث عن أيقونة جُنْد في شاشتك','green');
+        var btn=document.getElementById('pwa-install-btn');
+        if(btn) btn.style.display='none';
+      }
+      _pwaPrompt=null;
+    });
+  } else if(_pwaIsIOS()){
+    alert('لتثبيت التطبيق على آيفون:\n\n1. اضغط زر المشاركة (المربع مع السهم ⬆️) أسفل المتصفح\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة"\n\nستظهر أيقونة جُنْد على شاشتك الرئيسية');
+  } else {
+    alert('التثبيت متاح من قائمة المتصفح: اضغط قائمة النقاط ⋮ ثم "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية"');
+  }
+}
+
+// عند التثبيت الناجح أخفِ الزر
+window.addEventListener('appinstalled', function(){
+  var btn=document.getElementById('pwa-install-btn');
+  if(btn) btn.style.display='none';
+});
 </script>
 </body>
