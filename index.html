@@ -624,6 +624,9 @@ _authReady.then(function(){
       <div id="all-reports-nav-item" style="display:none">
         <div class="sidebar-item" id="nav-all-reports" onclick="showView('all-reports')"><i class="ti ti-archive"></i> كل التقارير</div>
       </div>
+      <div id="monthly-report-nav-item" style="display:none">
+        <div class="sidebar-item" id="nav-monthly-report" onclick="showView('monthly-report')"><i class="ti ti-report-analytics"></i> التقرير الشهري</div>
+      </div>
       <div id="att-admin-nav-item" style="display:none">
         <div class="sidebar-item" id="nav-att-admin" onclick="showView('att-admin')"><i class="ti ti-calendar-stats"></i> سجلات الحضور</div>
       </div>
@@ -1437,6 +1440,18 @@ _authReady.then(function(){
         </div>
         <div id="incidents-status-content" style="margin-top:14px"></div>
       </div>
+      <!-- MONTHLY REPORT — التقرير الشهري -->
+      <div id="view-monthly-report" class="content-view">
+        <div class="page-title">التقرير الشهري</div>
+        <div class="page-subtitle">ملخص شامل لكل ما حدث خلال الشهر — وقائع، مخالفات، تقارير، طلبات وحضور</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0 6px">
+          <select id="mr-month" onchange="renderMonthlyReport()" style="padding:11px 14px;background:var(--dark2);border:1px solid rgba(27,42,107,0.3);border-radius:10px;color:var(--text);font-family:Cairo,sans-serif;font-size:13.5px;font-weight:700;cursor:pointer"></select>
+          <select id="mr-year" onchange="renderMonthlyReport()" style="padding:11px 14px;background:var(--dark2);border:1px solid rgba(27,42,107,0.3);border-radius:10px;color:var(--text);font-family:Cairo,sans-serif;font-size:13.5px;font-weight:700;cursor:pointer;direction:ltr"></select>
+          <button onclick="printMonthlyReport()" style="margin-right:auto;padding:11px 20px;background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.3);border-radius:10px;color:var(--blue);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap"><i class="ti ti-printer"></i> طباعة التقرير</button>
+        </div>
+        <div id="monthly-report-content" style="margin-top:12px"></div>
+      </div>
+
       <div id="view-alerts" class="content-view">
         <div class="page-title">التنبيهات والإشعارات</div>
         <div class="page-subtitle" id="alerts-subtitle">جاري تحميل التنبيهات...</div>
@@ -3722,6 +3737,8 @@ function _finishLogin(u,a,name,empId,perms,fixedData){
   document.getElementById('req-tracking-nav-item').style.display=(a||isManager||currentUser.hasAllReportsAccess||currentUser.canApproveRequests)?'block':'none';
   document.getElementById('folders-nav-item').style.display=(a||currentUser.hasFolderAccess)?'block':'none';
   document.getElementById('incidents-nav-item').style.display=(a||currentUser.hasIncidentsAccess)?'block':'none';
+  var mrNav=document.getElementById('monthly-report-nav-item');
+  if(mrNav) mrNav.style.display=(a||currentUser.hasAllReportsAccess)?'block':'none';
   document.getElementById('nav-new-report').style.display=isManager?'none':'block';
   document.getElementById('nav-requests').style.display=isManager?'none':'block';
   var myTrackingNav=document.getElementById('nav-my-tracking');
@@ -4593,6 +4610,10 @@ function showView(n){
   if(n==='incidents-status'){
     if(!currentUser.isAdmin && !currentUser.hasIncidentsAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
     filterIncidents('all');
+  }
+  if(n==='monthly-report'){
+    if(!currentUser.isAdmin && !currentUser.hasAllReportsAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
+    initMonthlyReport();
   }
   if(n==='backup'){
     if(!currentUser.isAdmin){showToast('هذا القسم للأدمن فقط','red');return;}
@@ -7151,6 +7172,312 @@ function toggleIncStatus(rid){
   }
 }
 
+// ===== التقرير الشهري =====
+var _mrInit=false;
+function initMonthlyReport(){
+  var mSel=document.getElementById('mr-month'), ySel=document.getElementById('mr-year');
+  if(!mSel||!ySel) return;
+  if(!_mrInit){
+    var now=new Date();
+    // شهور السنة
+    var mh='';
+    for(var i=0;i<12;i++){ mh+='<option value="'+String(i+1).padStart(2,'0')+'">'+MONTHS_AR[i]+'</option>'; }
+    mSel.innerHTML=mh;
+    mSel.value=String(now.getMonth()+1).padStart(2,'0');
+    // السنوات: من أقدم تقرير حتى السنة الحالية
+    var minYear=now.getFullYear();
+    (_allReportsCache||[]).forEach(function(r){ var y=parseInt(dateYear(r&&r.date),10); if(y&&y<minYear) minYear=y; });
+    if(minYear<2024) minYear=2024;
+    var yh='';
+    for(var y=now.getFullYear(); y>=minYear; y--){ yh+='<option value="'+y+'">'+y+'</option>'; }
+    ySel.innerHTML=yh;
+    ySel.value=String(now.getFullYear());
+    _mrInit=true;
+  }
+  renderMonthlyReport();
+}
+
+function _mrInMonth(dateStr, ts, Y, M){
+  var p=parseDateParts(dateStr||'');
+  if(p) return (p.year===Y && p.month===M);
+  if(ts){ var d=new Date(ts); return (String(d.getFullYear())===Y && String(d.getMonth()+1).padStart(2,'0')===M); }
+  return false;
+}
+
+function _mrCard(label, value, color, icon){
+  return '<div style="flex:1;min-width:130px;background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:12px;padding:16px 12px;text-align:center">'+
+    '<div style="font-size:19px;margin-bottom:4px">'+icon+'</div>'+
+    '<div style="font-family:Cairo,sans-serif;font-size:26px;font-weight:800;color:'+color+'">'+value+'</div>'+
+    '<div style="font-size:12px;color:var(--text2);margin-top:2px">'+label+'</div>'+
+  '</div>';
+}
+
+function _mrBar(label, count, total, color){
+  var pct=total>0?Math.round((count/total)*100):0;
+  return '<div style="margin-bottom:11px">'+
+    '<div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px">'+
+      '<span style="color:var(--text)">'+escHtml(label)+'</span>'+
+      '<span style="font-family:Cairo,sans-serif;font-weight:800;color:'+color+'">'+count+' <span style="font-size:10.5px;color:var(--text2);font-weight:400">('+pct+'%)</span></span>'+
+    '</div>'+
+    '<div style="height:8px;background:rgba(27,42,107,0.1);border-radius:8px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:8px;transition:width .4s"></div></div>'+
+  '</div>';
+}
+
+function _mrSection(title, icon, color, innerHtml){
+  return '<div style="background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:14px;padding:20px;margin-bottom:16px">'+
+    '<div style="font-family:Cairo,sans-serif;font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px"><i class="ti '+icon+'" style="color:'+color+';font-size:18px"></i> '+title+'</div>'+
+    innerHtml+
+  '</div>';
+}
+
+// يجمع كل بيانات الشهر في كائن واحد (يُستخدم للعرض والطباعة)
+function computeMonthlyData(){
+  var mSel=document.getElementById('mr-month'), ySel=document.getElementById('mr-year');
+  var M=mSel?mSel.value:'', Y=ySel?ySel.value:'';
+  var d={Y:Y, M:M, monthLabel:monthName(M)+' '+Y};
+
+  // ===== التقارير =====
+  var reports=(_allReportsCache||[]).filter(function(r){ return r && _mrInMonth(r.date, r._ts||r.ts, Y, M); });
+  d.reports=reports;
+  d.totalReports=reports.length;
+
+  // حسب النوع
+  var TYPES=['واقعة','مخالفات مرورية','افادة','جولات دورية','استلام و تسليم دورية','زيارات CCTV','تقرير CCTV','المفاتيح','استلام الوردية للمشرفين'];
+  d.byType={};
+  TYPES.forEach(function(t){ d.byType[t]=0; });
+  reports.forEach(function(r){ if(d.byType[r.type]===undefined) d.byType[r.type]=0; d.byType[r.type]++; });
+
+  // الوقائع
+  var incs=reports.filter(function(r){return r.type==='واقعة';});
+  d.incTotal=incs.length;
+  d.incOpen=incs.filter(function(r){return (r.incStatus||'open')==='open';}).length;
+  d.incClosed=d.incTotal-d.incOpen;
+
+  // المخالفات المرورية + تفصيل الأنواع
+  var tvs=reports.filter(function(r){return r.type==='مخالفات مرورية';});
+  d.tvTotal=tvs.length;
+  d.tvByType={};
+  tvs.forEach(function(r){
+    var vt=(r.tv&&r.tv.violationType)?r.tv.violationType:'غير محدد';
+    d.tvByType[vt]=(d.tvByType[vt]||0)+1;
+  });
+
+  // حالة التقارير
+  d.stApproved=reports.filter(function(r){return r.status==='موافق عليه'||r.status==='مكتمل'||r.noApproval;}).length;
+  d.stRejected=reports.filter(function(r){return r.status==='مرفوض';}).length;
+  d.stPending=d.totalReports-d.stApproved-d.stRejected;
+  if(d.stPending<0) d.stPending=0;
+
+  // أنشط المنتسبين
+  var byAuthor={};
+  reports.forEach(function(r){ var a=r.author||'غير معروف'; byAuthor[a]=(byAuthor[a]||0)+1; });
+  d.topAuthors=Object.keys(byAuthor).map(function(k){return {name:k,count:byAuthor[k]};})
+    .sort(function(a,b){return b.count-a.count;}).slice(0,5);
+
+  // أكثر يوم نشاطاً
+  var byDay={};
+  reports.forEach(function(r){ var p=parseDateParts(r.date||''); if(p){ byDay[p.day]=(byDay[p.day]||0)+1; } });
+  var busiest=null;
+  Object.keys(byDay).forEach(function(k){ if(!busiest||byDay[k]>byDay[busiest]) busiest=k; });
+  d.busiestDay=busiest; d.busiestCount=busiest?byDay[busiest]:0;
+
+  // ===== الطلبات =====
+  var reqs=(_allRequestsCache||[]).filter(function(r){ return r && _mrInMonth(r.date, r._ts, Y, M); });
+  d.reqTotal=reqs.length;
+  d.reqApproved=reqs.filter(function(r){return r.status==='موافق عليه';}).length;
+  d.reqRejected=reqs.filter(function(r){return r.status==='مرفوض';}).length;
+  d.reqDone=reqs.filter(function(r){return r.status==='مكتمل';}).length;
+  d.reqPending=d.reqTotal-d.reqApproved-d.reqRejected-d.reqDone;
+  if(d.reqPending<0) d.reqPending=0;
+  d.reqByType={};
+  reqs.forEach(function(r){ var t=r.type||'أخرى'; d.reqByType[t]=(d.reqByType[t]||0)+1; });
+
+  // ===== الحضور =====
+  var att=((typeof _allAttCache!=='undefined')?_allAttCache:[]||[]).filter(function(r){ return r && _mrInMonth(r.date, r._ts, Y, M); });
+  d.attIn=att.filter(function(r){return r.type==='in';}).length;
+  d.attOut=att.filter(function(r){return r.type==='out';}).length;
+  var attNames={};
+  att.forEach(function(r){ if(r.name) attNames[r.name]=true; });
+  d.attUnique=Object.keys(attNames).length;
+
+  return d;
+}
+
+function renderMonthlyReport(){
+  var el=document.getElementById('monthly-report-content');
+  if(!el) return;
+  var d=computeMonthlyData();
+
+  if(d.totalReports===0 && d.reqTotal===0 && d.attIn===0 && d.attOut===0){
+    el.innerHTML='<div style="color:var(--text2);padding:50px;text-align:center;background:var(--dark3);border:1px dashed rgba(27,42,107,0.25);border-radius:14px"><div style="font-size:34px;margin-bottom:10px">📭</div>لا توجد أي بيانات مسجّلة في '+escHtml(d.monthLabel)+'</div>';
+    return;
+  }
+
+  var html='';
+
+  // البطاقات الرئيسية
+  html+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">'+
+    _mrCard('إجمالي التقارير', d.totalReports, 'var(--navy2)', '📋')+
+    _mrCard('الوقائع', d.incTotal, '#F0883E', '🚨')+
+    _mrCard('المخالفات المرورية', d.tvTotal, 'var(--red)', '🚗')+
+    _mrCard('الطلبات', d.reqTotal, 'var(--blue)', '📨')+
+  '</div>';
+
+  // الوقائع
+  if(d.incTotal>0){
+    html+=_mrSection('الوقائع خلال الشهر','ti-alert-circle','#F0883E',
+      '<div style="display:flex;gap:12px;flex-wrap:wrap">'+
+        '<div style="flex:1;min-width:110px;background:rgba(240,136,62,0.08);border:1px solid rgba(240,136,62,0.25);border-radius:10px;padding:12px;text-align:center"><div style="font-family:Cairo,sans-serif;font-size:22px;font-weight:800;color:#F0883E">'+d.incOpen+'</div><div style="font-size:12px;color:var(--text2)">⏳ مستمرة</div></div>'+
+        '<div style="flex:1;min-width:110px;background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.25);border-radius:10px;padding:12px;text-align:center"><div style="font-family:Cairo,sans-serif;font-size:22px;font-weight:800;color:var(--green)">'+d.incClosed+'</div><div style="font-size:12px;color:var(--text2)">✅ مغلقة</div></div>'+
+      '</div>');
+  }
+
+  // المخالفات المرورية حسب النوع
+  if(d.tvTotal>0){
+    var tvHtml='';
+    Object.keys(d.tvByType).sort(function(a,b){return d.tvByType[b]-d.tvByType[a];}).forEach(function(k){
+      tvHtml+=_mrBar(k, d.tvByType[k], d.tvTotal, 'var(--red)');
+    });
+    html+=_mrSection('المخالفات المرورية حسب النوع','ti-car-crash','var(--red)',tvHtml);
+  }
+
+  // التقارير حسب النوع
+  var typeHtml='', typeColors={'واقعة':'#F0883E','مخالفات مرورية':'var(--red)','افادة':'#6B8FD6','جولات دورية':'var(--green)','استلام و تسليم دورية':'var(--gold2)','زيارات CCTV':'#a371f7','تقرير CCTV':'#a371f7','المفاتيح':'#58a6ff','استلام الوردية للمشرفين':'#39c5cf'};
+  Object.keys(d.byType).sort(function(a,b){return d.byType[b]-d.byType[a];}).forEach(function(t){
+    if(d.byType[t]>0) typeHtml+=_mrBar(t, d.byType[t], d.totalReports, typeColors[t]||'var(--navy2)');
+  });
+  if(typeHtml) html+=_mrSection('التقارير حسب النوع','ti-chart-bar','var(--navy2)',typeHtml);
+
+  // حالة التقارير
+  if(d.totalReports>0){
+    html+=_mrSection('حالة التقارير','ti-checklist','var(--green)',
+      _mrBar('✅ موافق عليه / مكتمل', d.stApproved, d.totalReports, 'var(--green)')+
+      _mrBar('⏳ قيد الانتظار', d.stPending, d.totalReports, 'var(--gold2)')+
+      _mrBar('❌ مرفوض', d.stRejected, d.totalReports, 'var(--red)'));
+  }
+
+  // الطلبات
+  if(d.reqTotal>0){
+    var reqTypesHtml='';
+    Object.keys(d.reqByType).sort(function(a,b){return d.reqByType[b]-d.reqByType[a];}).forEach(function(k){
+      reqTypesHtml+=_mrBar(k, d.reqByType[k], d.reqTotal, 'var(--blue)');
+    });
+    html+=_mrSection('طلبات المنتسبين','ti-send','var(--blue)',
+      '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">'+
+        '<div style="flex:1;min-width:95px;background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.25);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Cairo,sans-serif;font-size:19px;font-weight:800;color:var(--green)">'+d.reqApproved+'</div><div style="font-size:11.5px;color:var(--text2)">موافق عليه</div></div>'+
+        '<div style="flex:1;min-width:95px;background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.25);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Cairo,sans-serif;font-size:19px;font-weight:800;color:var(--red)">'+d.reqRejected+'</div><div style="font-size:11.5px;color:var(--text2)">مرفوض</div></div>'+
+        '<div style="flex:1;min-width:95px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Cairo,sans-serif;font-size:19px;font-weight:800;color:var(--gold2)">'+d.reqPending+'</div><div style="font-size:11.5px;color:var(--text2)">قيد الانتظار</div></div>'+
+        '<div style="flex:1;min-width:95px;background:rgba(27,42,107,0.08);border:1px solid rgba(27,42,107,0.25);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Cairo,sans-serif;font-size:19px;font-weight:800;color:var(--navy2)">'+d.reqDone+'</div><div style="font-size:11.5px;color:var(--text2)">مكتمل</div></div>'+
+      '</div>'+reqTypesHtml);
+  }
+
+  // الحضور
+  if(d.attIn>0 || d.attOut>0){
+    html+=_mrSection('الحضور والانصراف','ti-map-pin-check','var(--green)',
+      '<div style="display:flex;gap:12px;flex-wrap:wrap">'+
+        '<div style="flex:1;min-width:110px;background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.25);border-radius:10px;padding:12px;text-align:center"><div style="font-family:Cairo,sans-serif;font-size:22px;font-weight:800;color:var(--green)">'+d.attIn+'</div><div style="font-size:12px;color:var(--text2)">🟢 تسجيلات حضور</div></div>'+
+        '<div style="flex:1;min-width:110px;background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.25);border-radius:10px;padding:12px;text-align:center"><div style="font-family:Cairo,sans-serif;font-size:22px;font-weight:800;color:var(--red)">'+d.attOut+'</div><div style="font-size:12px;color:var(--text2)">🔴 تسجيلات انصراف</div></div>'+
+        '<div style="flex:1;min-width:110px;background:rgba(27,42,107,0.08);border:1px solid rgba(27,42,107,0.25);border-radius:10px;padding:12px;text-align:center"><div style="font-family:Cairo,sans-serif;font-size:22px;font-weight:800;color:var(--navy2)">'+d.attUnique+'</div><div style="font-size:12px;color:var(--text2)">👥 منتسب سجّل حضوراً</div></div>'+
+      '</div>');
+  }
+
+  // أنشط المنتسبين + أكثر يوم نشاطاً
+  if(d.topAuthors.length>0){
+    var taHtml='';
+    d.topAuthors.forEach(function(a,i){
+      var medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'▪️';
+      taHtml+='<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(27,42,107,0.1)">'+
+        '<span style="font-size:16px">'+medal+'</span>'+
+        '<span style="flex:1;font-size:13px;color:var(--text);font-weight:600">'+escHtml(a.name)+'</span>'+
+        '<span style="font-family:Cairo,sans-serif;font-size:14px;font-weight:800;color:var(--navy2)">'+a.count+' تقرير</span>'+
+      '</div>';
+    });
+    if(d.busiestDay){
+      taHtml+='<div style="margin-top:14px;background:rgba(88,166,255,0.08);border:1px solid rgba(88,166,255,0.2);border-radius:10px;padding:11px 14px;font-size:12.5px;color:var(--text)">📅 أكثر يوم نشاطاً: <strong style="font-family:Cairo,sans-serif;color:var(--blue)">'+d.busiestDay+' '+escHtml(monthName(d.M))+'</strong> بعدد <strong style="color:var(--blue)">'+d.busiestCount+'</strong> تقرير</div>';
+    }
+    html+=_mrSection('أنشط المنتسبين','ti-trophy','var(--gold2)',taHtml);
+  }
+
+  el.innerHTML=html;
+}
+
+function printMonthlyReport(){
+  var d=computeMonthlyData();
+  var w=window.open('','_blank');
+  if(!w){ showToast('يرجى السماح بالنوافذ المنبثقة للطباعة','red'); return; }
+
+  function tr(l,v,c){ return '<tr><td class="lbl">'+l+'</td><td class="val"'+(c?' style="color:'+c+'"':'')+'>'+v+'</td></tr>'; }
+
+  var body='';
+  body+='<div class="sl">الملخص العام</div><table>'+
+    tr('إجمالي التقارير', d.totalReports)+
+    tr('الوقائع', d.incTotal+' (مستمرة: '+d.incOpen+' — مغلقة: '+d.incClosed+')','#c0392b')+
+    tr('المخالفات المرورية', d.tvTotal,'#c0392b')+
+    tr('الطلبات', d.reqTotal)+
+    tr('تسجيلات الحضور / الانصراف', d.attIn+' / '+d.attOut)+
+    tr('عدد المنتسبين الذين سجّلوا حضوراً', d.attUnique)+
+  '</table>';
+
+  var typeRows='';
+  Object.keys(d.byType).sort(function(a,b){return d.byType[b]-d.byType[a];}).forEach(function(t){
+    if(d.byType[t]>0) typeRows+=tr(t, d.byType[t]);
+  });
+  if(typeRows) body+='<div class="sl">التقارير حسب النوع</div><table>'+typeRows+'</table>';
+
+  if(d.tvTotal>0){
+    var tvRows='';
+    Object.keys(d.tvByType).sort(function(a,b){return d.tvByType[b]-d.tvByType[a];}).forEach(function(k){ tvRows+=tr(k, d.tvByType[k]); });
+    body+='<div class="sl" style="color:#c0392b">المخالفات المرورية حسب النوع</div><table>'+tvRows+'</table>';
+  }
+
+  if(d.totalReports>0){
+    body+='<div class="sl">حالة التقارير</div><table>'+
+      tr('موافق عليه / مكتمل', d.stApproved,'#2d8a4e')+
+      tr('قيد الانتظار', d.stPending,'#b8860b')+
+      tr('مرفوض', d.stRejected,'#c0392b')+
+    '</table>';
+  }
+
+  if(d.reqTotal>0){
+    var reqRows=tr('موافق عليه',d.reqApproved,'#2d8a4e')+tr('مرفوض',d.reqRejected,'#c0392b')+tr('قيد الانتظار',d.reqPending,'#b8860b')+tr('مكتمل',d.reqDone);
+    Object.keys(d.reqByType).sort(function(a,b){return d.reqByType[b]-d.reqByType[a];}).forEach(function(k){ reqRows+=tr('طلبات '+k, d.reqByType[k]); });
+    body+='<div class="sl">الطلبات</div><table>'+reqRows+'</table>';
+  }
+
+  if(d.topAuthors.length>0){
+    var taRows='';
+    d.topAuthors.forEach(function(a,i){ taRows+=tr((i+1)+'. '+a.name, a.count+' تقرير'); });
+    if(d.busiestDay) taRows+=tr('أكثر يوم نشاطاً', d.busiestDay+' '+monthName(d.M)+' ('+d.busiestCount+' تقرير)');
+    body+='<div class="sl">أنشط المنتسبين</div><table>'+taRows+'</table>';
+  }
+
+  var now=new Date();
+  var printedAt=now.getFullYear()+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+String(now.getDate()).padStart(2,'0')+' — '+now.toTimeString().slice(0,5);
+
+  w.document.write('<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>التقرير الشهري — '+d.monthLabel+'</title>'+
+    '<style>'+
+    'body{font-family:Tahoma,Arial,sans-serif;color:#222;margin:0;padding:24px;font-size:13px}'+
+    '.hdr{display:flex;align-items:center;gap:16px;border-bottom:3px solid #1B2A6B;padding-bottom:14px;margin-bottom:18px}'+
+    '.hdr img{width:64px;height:64px;object-fit:contain}'+
+    '.hdr .t1{font-size:19px;font-weight:800;color:#1B2A6B}'+
+    '.hdr .t2{font-size:13px;color:#555;margin-top:3px}'+
+    '.sl{font-size:14px;font-weight:800;color:#1B2A6B;margin:20px 0 8px;border-right:4px solid #1B2A6B;padding-right:8px}'+
+    'table{width:100%;border-collapse:collapse;margin-bottom:6px}'+
+    'td{border:1px solid #ccc;padding:7px 12px}'+
+    '.lbl{background:#f2f4fa;font-weight:700;width:45%}'+
+    '.val{font-weight:700}'+
+    '.ftr{margin-top:26px;font-size:11px;color:#777;border-top:1px solid #ddd;padding-top:10px;display:flex;justify-content:space-between}'+
+    '@media print{body{padding:10mm}}'+
+    '</style></head><body>'+
+    '<div class="hdr"><img src="'+JOND_SRC+'"/><div><div class="t1">بوابة جُنْد الأمنية — التقرير الشهري</div><div class="t2">شهر: <strong>'+d.monthLabel+'</strong></div></div></div>'+
+    body+
+    '<div class="ftr"><span>أُعدّ بواسطة: '+escHtml(currentUser.name||'')+'</span><span>تاريخ الطباعة: '+printedAt+'</span></div>'+
+    '</body></html>');
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 400);
+  logActivity('طباعة التقرير الشهري', d.monthLabel, '');
+}
+
 function toggleIncidentsAccess(userId){
   var u=activeUsers.find(function(x){return x.id===userId;});
   if(!u) return;
@@ -7174,6 +7501,7 @@ function grantAllReportsAccess(name){
   currentUser.hasAllReportsAccess=true;
   document.getElementById('all-reports-nav-item').style.display='block';
   document.getElementById('req-tracking-nav-item').style.display='block';
+  var mrNav=document.getElementById('monthly-report-nav-item'); if(mrNav) mrNav.style.display='block';
   showToast('تم منح صلاحية كافة التقارير لـ '+name,'gold');
 }
 
@@ -7181,6 +7509,7 @@ function revokeAllReportsAccess(){
   currentUser.hasAllReportsAccess=false;
   document.getElementById('all-reports-nav-item').style.display='none';
   document.getElementById('req-tracking-nav-item').style.display=currentUser.isAdmin?'block':'none';
+  var mrNav=document.getElementById('monthly-report-nav-item'); if(mrNav) mrNav.style.display=currentUser.isAdmin?'block':'none';
   showToast('تم سحب صلاحية كافة التقارير','red');
 }
 
@@ -9989,7 +10318,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.3</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.4</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
