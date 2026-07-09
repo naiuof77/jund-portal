@@ -625,7 +625,6 @@ _authReady.then(function(){
         <div class="sidebar-item" id="nav-folders" onclick="showView('folders')"><i class="ti ti-folder"></i> المجلدات</div>
       </div>
       <div class="sidebar-section">المتابعة</div>
-      <div class="sidebar-item" id="nav-alerts" onclick="showView('alerts')"><i class="ti ti-bell"></i> التنبيهات <span class="badge-count" id="alerts-badge" style="display:none"></span></div>
       <div id="incidents-nav-item" style="display:none">
         <div class="sidebar-item" id="nav-incidents-status" onclick="showView('incidents-status')"><i class="ti ti-alert-circle"></i> حالة الوقائع</div>
       </div>
@@ -663,6 +662,7 @@ _authReady.then(function(){
       <div id="view-dashboard" class="content-view active">
         <div class="page-title">لوحة المتابعة</div>
         <div class="page-subtitle" id="dash-date"></div>
+        <div id="followup-center"></div>
         <div class="stats-grid" id="dash-stats-grid"></div>
         <div id="dash-online-box" style="display:none;background:var(--dark2);border:1px solid rgba(63,185,80,0.25);border-radius:12px;padding:16px 20px;margin-bottom:18px">
           <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px">
@@ -1490,19 +1490,6 @@ _authReady.then(function(){
           <button onclick="printMonthlyReport()" style="padding:11px 20px;background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.3);border-radius:10px;color:var(--blue);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap"><i class="ti ti-printer"></i> طباعة التقرير</button>
         </div>
         <div id="monthly-report-content" style="margin-top:12px"></div>
-      </div>
-
-      <div id="view-alerts" class="content-view">
-        <div class="page-title">التنبيهات والإشعارات</div>
-        <div class="page-subtitle" id="alerts-subtitle">جاري تحميل التنبيهات...</div>
-        <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
-          <button onclick="filterAlerts('all')" id="alert-filter-all" style="padding:7px 18px;border-radius:20px;border:1px solid rgba(27,42,107,0.3);background:var(--navy);color:#fff;font-family:Tajawal,sans-serif;font-size:13px;cursor:pointer">الكل</button>
-          <button onclick="filterAlerts('urgent')" id="alert-filter-urgent" style="padding:7px 18px;border-radius:20px;border:1px solid rgba(248,81,73,0.3);background:transparent;color:var(--red);font-family:Tajawal,sans-serif;font-size:13px;cursor:pointer">🔴 عاجل</button>
-          <button onclick="filterAlerts('warning')" id="alert-filter-warning" style="padding:7px 18px;border-radius:20px;border:1px solid rgba(201,168,76,0.3);background:transparent;color:var(--gold2);font-family:Tajawal,sans-serif;font-size:13px;cursor:pointer">🟡 تنبيه</button>
-          <button onclick="filterAlerts('info')" id="alert-filter-info" style="padding:7px 18px;border-radius:20px;border:1px solid rgba(63,185,80,0.3);background:transparent;color:var(--green);font-family:Tajawal,sans-serif;font-size:13px;cursor:pointer">🟢 معلومة</button>
-          <button onclick="markAllAlertsRead()" style="padding:7px 18px;border-radius:20px;border:1px solid rgba(27,42,107,0.3);background:transparent;color:var(--text2);font-family:Tajawal,sans-serif;font-size:13px;cursor:pointer;margin-right:auto">تعيين الكل كمقروء</button>
-        </div>
-        <div id="alerts-container"></div>
       </div>
 
       <!-- USERS — إدارة المنتسبين (قائمة + ملف المنتسب) -->
@@ -4028,8 +4015,6 @@ function _finishLogin(u,a,name,empId,perms,fixedData){
   if(previewApproveNav) previewApproveNav.style.display=(a||isManager)?'none':'block';
   var myReportsNav=document.getElementById('nav-my-reports');
   if(myReportsNav) myReportsNav.style.display=isManager?'none':'block';
-  var alertsNav=document.getElementById('nav-alerts');
-  if(alertsNav) alertsNav.style.display=isManager?'none':'block';
   var attNav=document.getElementById('nav-attendance');
   if(attNav) attNav.style.display=(a||isManager)?'none':'block';
   var attAdminNavEl=document.getElementById('att-admin-nav-item');
@@ -4895,7 +4880,6 @@ function showView(n){
   if(n==='my-reports'){renderMyReports();}
   if(n==='all-reports'){renderAllReports();}
   if(n==='dashboard'){renderDashboard();}
-  if(n==='alerts'){_alertsFilter='all';renderAlertsView();filterAlerts('all');}
   if(n==='req-tracking'){renderReqTracking();}
   if(n==='users'){renderUsersList();}
   if(n==='permissions'){renderPermsList();}
@@ -5767,6 +5751,7 @@ function renderDashboard(){
   var lastR=_dashReports[0]||null;
 
   var statsGrid=document.getElementById('dash-stats-grid');
+  if(typeof renderFollowupCenter==='function') renderFollowupCenter();
   if(statsGrid){
     var lastTime=lastR?(lastR.time||lastR.date):'—';
     var lastTitle=lastR?lastR.title:'لا يوجد';
@@ -10103,269 +10088,119 @@ function toggleLightMode(){
   try{var _t=localStorage.getItem('jund_theme');if(_t==='dark'){document.body.classList.remove('light-mode');var ic=document.getElementById('theme-icon');if(ic)ic.className='ti ti-sun';}else{document.body.classList.add('light-mode');var ic=document.getElementById('theme-icon');if(ic)ic.className='ti ti-moon';}}catch(e){document.body.classList.add('light-mode');}
 })();
 
+// ===== (أُزيل نظام التنبيهات القديم — حل محله الجرس ومركز المتابعة) =====
+function updateAlertsBadge(){}
+
 // ============================================================
-// ===== نظام التنبيهات الذكي — الإصدار 2 =====
+// ===== مركز المتابعة الذكية — الأشياء المعلقة التي تحتاج انتباهاً =====
 // ============================================================
-var _alertsCache = [];
-var _alertsFilter = 'all';
+// المدد قابلة للتعديل (بالأيام):
+var OVERDUE_INCIDENT_DAYS = 7;   // واقعة مفتوحة تعتبر متأخرة بعد
+var OVERDUE_PENDING_DAYS  = 3;   // طلب أو تقرير قيد الانتظار يعتبر متأخراً بعد
 
-function buildSmartAlerts(){
-  var alerts = [];
-  var now = new Date();
-  var todayFmt = String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
-  var hour = now.getHours();
+function _fuAgeDays(ts){
+  if(!ts) return 0;
+  return Math.floor((Date.now()-ts)/86400000);
+}
 
-  // --- 1. تنبيه: لم ترفع تقرير اليوم ---
-  var myReports = [];
-  try{ myReports = JSON.parse(localStorage.getItem('jund_reports_'+currentUser.name)||'[]'); }catch(e){}
-  var todayReports = myReports.filter(function(r){ return !r.isDraft && r.date === todayFmt; });
-  if(todayReports.length === 0 && hour >= 8){
-    alerts.push({
-      id:'no_report_today',
-      type:'urgent',
-      dotClass:'dot-red',
-      title:'⚠️ لم ترفع تقريراً اليوم',
-      desc:'لا يوجد أي تقرير مُرسل اليوم بتاريخ '+todayFmt+'. يُرجى رفع تقرير الشفت.',
-      time:'اليوم',
-      action:function(){ showView('new-report'); },
-      actionLabel:'رفع تقرير الآن'
-    });
-  }
+// يجمع كل البنود المعلقة حسب صلاحية المستخدم
+function buildFollowupData(){
+  var items=[];
+  var isSupervisory = currentUser && (currentUser.isAdmin || currentUser.isManager || currentUser.hasAllReportsAccess);
+  var now=new Date(), hour=now.getHours();
 
-  // --- 2. تنبيه: لم تسجّل انصراف ---
-  var attLogs = [];
-  try{ attLogs = JSON.parse(localStorage.getItem('jund_att_all')||'[]'); }catch(e){}
-  var myAtt = attLogs.filter(function(r){ return r.date===todayFmt && r.name===currentUser.name; });
-  var hasCheckIn  = myAtt.some(function(r){ return r.type==='in'; });
-  var hasCheckOut = myAtt.some(function(r){ return r.type==='out'; });
-  if(hasCheckIn && !hasCheckOut && hour >= 12){
-    alerts.push({
-      id:'no_checkout',
-      type:'urgent',
-      dotClass:'dot-red',
-      title:'🔴 لم تسجّل انصرافك',
-      desc:'سجّلت حضوراً اليوم ولكن لم تسجّل انصرافك بعد. يُرجى تسجيل الانصراف.',
-      time:'اليوم',
-      action:function(){ showView('attendance'); },
-      actionLabel:'تسجيل الانصراف'
-    });
-  }
-
-  // --- 3. تنبيهات: حالة الطلبات (موافقة أو رفض) ---
-  var myRequests = [];
-  try{ myRequests = JSON.parse(localStorage.getItem('jund_requests_'+currentUser.name)||'[]'); }catch(e){}
-  var readAlerts = {};
-  try{ readAlerts = JSON.parse(localStorage.getItem('jund_read_alerts_'+currentUser.name)||'{}'); }catch(e){}
-
-  myRequests.forEach(function(req){
-    var alertId = 'req_status_'+req.id;
-    if(readAlerts[alertId]) return; // تم قراءته
-    if(req.status === 'موافق عليه'){
-      alerts.push({
-        id: alertId,
-        type:'info',
-        dotClass:'dot-green',
-        title:'✅ تمت الموافقة على طلبك',
-        desc:'طلب "'+req.type+'" المقدَّم بتاريخ '+req.date+' — تمت الموافقة عليه.',
-        time: req.date,
-        action:function(){ showView('my-tracking'); },
-        actionLabel:'عرض طلباتي',
-        dismissable: true,
-        alertId: alertId
-      });
-    } else if(req.status === 'مرفوض'){
-      alerts.push({
-        id: alertId,
-        type:'warning',
-        dotClass:'dot-gold',
-        title:'❌ تم رفض طلبك',
-        desc:'طلب "'+req.type+'" المقدَّم بتاريخ '+req.date+' — تم رفضه. يمكنك إعادة التقديم.',
-        time: req.date,
-        action:function(){ showView('my-tracking'); },
-        actionLabel:'عرض طلباتي',
-        dismissable: true,
-        alertId: alertId
-      });
-    }
-  });
-
-  // --- 4. تنبيه للأدمن: طلبات تسجيل جديدة ---
-  if(currentUser.isAdmin){
-    var pending = pendingUsers.filter(function(u){ return !u.rejected; });
-    if(pending.length > 0){
-      alerts.push({
-        id:'pending_users',
-        type:'urgent',
-        dotClass:'dot-red',
-        title:'👥 طلبات تسجيل جديدة تنتظر الموافقة',
-        desc:'يوجد '+pending.length+' طلب/طلبات تسجيل تنتظر مراجعتك وقبولها.',
-        time:'الآن',
-        action:function(){ showView('pending-approvals'); },
-        actionLabel:'مراجعة الطلبات'
-      });
+  if(isSupervisory){
+    // 1. الوقائع المتأخرة (مفتوحة أكثر من المدة)
+    var openIncs=(_allReportsCache||[]).filter(function(r){ return r && r.type==='واقعة' && (r.incStatus||'open')==='open'; });
+    var overdueIncs=openIncs.filter(function(r){ return _fuAgeDays(r._ts)>=OVERDUE_INCIDENT_DAYS; });
+    if(overdueIncs.length>0){
+      var oldestInc=Math.max.apply(null, overdueIncs.map(function(r){return _fuAgeDays(r._ts);}));
+      items.push({icon:'🚨', label:'وقائع متأخرة بدون إغلاق', count:overdueIncs.length, sub:'أقدمها مفتوحة منذ '+oldestInc+' يوم', view:'incidents-status', color:'var(--red)'});
     }
 
-    // --- 5. تنبيه للأدمن: طلبات منتسبين بانتظار القرار ---
-    var allRequests = [];
-    activeUsers.forEach(function(u){
-      try{
-        JSON.parse(localStorage.getItem('jund_requests_'+u.name)||'[]').forEach(function(r){ allRequests.push(r); });
-      }catch(e){}
-    });
-    var pendingRequests = allRequests.filter(function(r){ return r.status==='قيد المراجعة'; });
-    if(pendingRequests.length > 0){
-      alerts.push({
-        id:'pending_requests',
-        type:'warning',
-        dotClass:'dot-gold',
-        title:'📋 طلبات منتسبين تنتظر القرار',
-        desc:'يوجد '+pendingRequests.length+' طلب من المنتسبين لم يتم البت فيه بعد.',
-        time:'الآن',
-        action:function(){ showView('req-tracking'); },
-        actionLabel:'عرض الطلبات'
-      });
+    // 2. الطلبات المعلقة
+    var pendReqs=(_allRequestsCache||[]).filter(function(q){ return q && q.status==='قيد الانتظار'; });
+    if(pendReqs.length>0){
+      var oldestReq=Math.max.apply(null, pendReqs.map(function(q){return _fuAgeDays(q._ts);}));
+      items.push({icon:'📨', label:'طلبات بانتظار قرارك', count:pendReqs.length, sub:oldestReq>=OVERDUE_PENDING_DAYS?('⚠️ أقدمها منذ '+oldestReq+' يوم'):('أقدمها منذ '+oldestReq+' يوم'), view:'req-approve', color:oldestReq>=OVERDUE_PENDING_DAYS?'var(--red)':'var(--gold2)'});
+    }
+
+    // 3. التقارير بانتظار المراجعة
+    var pendReps=(_allReportsCache||[]).filter(function(r){ return r && r.status==='قيد الانتظار' && !r.noApproval; });
+    if(pendReps.length>0){
+      var oldestRep=Math.max.apply(null, pendReps.map(function(r){return _fuAgeDays(r._ts);}));
+      items.push({icon:'📋', label:'تقارير بانتظار المراجعة', count:pendReps.length, sub:oldestRep>=OVERDUE_PENDING_DAYS?('⚠️ أقدمها منذ '+oldestRep+' يوم'):('أقدمها منذ '+oldestRep+' يوم'), view:'all-reports', color:oldestRep>=OVERDUE_PENDING_DAYS?'var(--red)':'var(--gold2)'});
+    }
+
+    // 4. طلبات التسجيل المعلقة (للأدمن فقط)
+    if(currentUser.isAdmin && typeof pendingUsers!=='undefined' && pendingUsers && pendingUsers.length>0){
+      items.push({icon:'👤', label:'طلبات تسجيل بانتظار الموافقة', count:pendingUsers.length, sub:'منتسبون جدد لا يستطيعون الدخول', view:'pending-approvals', color:'var(--blue)'});
     }
   }
 
-  // --- 6. تنبيه: تقاريرك قُرئت من قِبل الإدارة ---
-  myReports.forEach(function(r){
-    if(!r.readByAdmin) return;
-    var alertId = 'report_read_'+r.id;
-    if(readAlerts[alertId]) return;
-    alerts.push({
-      id: alertId,
-      type:'info',
-      dotClass:'dot-green',
-      title:'📖 تقريرك تمت قراءته من الإدارة',
-      desc:'تقرير "'+escHtml(r.title)+'" بتاريخ '+escHtml(r.date||'')+' تمت مراجعته والإحاطة به.',
-      time: r.date,
-      action:function(){ openReport(r); },
-      actionLabel:'عرض التقرير',
-      dismissable: true,
-      alertId: alertId
-    });
-  });
-
-  // --- 7. تنبيه: تقارير يومية بانتظار الرفع حسب الشفت ---
-  if(!currentUser.isAdmin){
-    var shiftDeadlines = [{name:'A', start:6, end:14}, {name:'B', start:14, end:22}, {name:'C', start:22, end:6}];
-    shiftDeadlines.forEach(function(sh){
-      var inShift = (sh.name==='C') ? (hour>=22 || hour<6) : (hour>=sh.start && hour<sh.end);
-      if(inShift && todayReports.length === 0 && hour >= sh.start+2){
-        // التنبيه بعد ساعتين من بدء الشفت
-        var alertId = 'shift_report_'+sh.name+'_'+todayFmt;
-        if(!readAlerts[alertId]){
-          alerts.push({
-            id: alertId,
-            type:'warning',
-            dotClass:'dot-gold',
-            title:'⏰ تذكير: تقرير الشفت '+sh.name+' لم يُرفع',
-            desc:'انتهت أكثر من ساعتين على بدء شفت '+sh.name+' ولم يتم رفع أي تقرير. يُرجى الرفع قريباً.',
-            time:'شفت '+sh.name,
-            action:function(){ showView('new-report'); },
-            actionLabel:'رفع تقرير',
-            dismissable: true,
-            alertId: alertId
-          });
-        }
+  // ===== تذكيرات شخصية (لغير المشرفين) — منقولة من نظام التنبيهات القديم ومصلّحة على Firebase =====
+  if(!isSupervisory){
+    // 5. لم يرفع تقريراً اليوم (بعد الساعة 8 صباحاً)
+    if(hour>=8){
+      var p=null, hasToday=(_myReportsCache||[]).some(function(r){
+        if(!r||r.isDraft) return false;
+        p=parseDateParts(r.date||'');
+        return p && parseInt(p.day,10)===now.getDate() && parseInt(p.month,10)===(now.getMonth()+1) && parseInt(p.year,10)===now.getFullYear();
+      });
+      if(!hasToday){
+        items.push({icon:'⚠️', label:'لم ترفع تقريراً اليوم', count:'', sub:'يُرجى رفع تقرير الشفت', view:'new-report', color:'var(--red)'});
       }
-    });
+    }
+    // 6. سجّل حضوراً ولم يسجّل انصرافاً (بعد الظهر)
+    if(hour>=12 && typeof _myAttCache!=='undefined'){
+      var todayStr=String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
+      var todayAtt=(_myAttCache||[]).filter(function(r){ return r && r.date===todayStr; });
+      var hasIn=todayAtt.some(function(r){return r.type==='in';});
+      var hasOut=todayAtt.some(function(r){return r.type==='out';});
+      if(hasIn && !hasOut){
+        items.push({icon:'🔴', label:'لم تسجّل انصرافك', count:'', sub:'سجّلت حضوراً اليوم بدون انصراف', view:'attendance', color:'var(--red)'});
+      }
+    }
   }
 
-  return alerts;
+  return items;
 }
 
-function dismissAlert(alertId){
-  var readAlerts = {};
-  try{ readAlerts = JSON.parse(localStorage.getItem('jund_read_alerts_'+currentUser.name)||'{}'); }catch(e){}
-  readAlerts[alertId] = true;
-  try{ localStorage.setItem('jund_read_alerts_'+currentUser.name, JSON.stringify(readAlerts)); }catch(e){}
-  renderAlertsView();
-  updateAlertsBadge();
-}
-
-function markAllAlertsRead(){
-  var readAlerts = {};
-  try{ readAlerts = JSON.parse(localStorage.getItem('jund_read_alerts_'+currentUser.name)||'{}'); }catch(e){}
-  _alertsCache.forEach(function(a){ if(a.dismissable) readAlerts[a.alertId]=true; });
-  try{ localStorage.setItem('jund_read_alerts_'+currentUser.name, JSON.stringify(readAlerts)); }catch(e){}
-  renderAlertsView();
-  updateAlertsBadge();
-}
-
-function filterAlerts(type){
-  _alertsFilter = type;
-  ['all','urgent','warning','info'].forEach(function(t){
-    var btn = document.getElementById('alert-filter-'+t);
-    if(!btn) return;
-    btn.style.background = (t===type)?'var(--navy)':'transparent';
-    btn.style.color = (t===type)?'#fff':(t==='urgent'?'var(--red)':t==='warning'?'var(--gold2)':t==='info'?'var(--green)':'var(--text2)');
-  });
-  renderAlertsView();
-}
-
-function renderAlertsView(){
-  _alertsCache = buildSmartAlerts();
-  var filtered = _alertsFilter==='all' ? _alertsCache : _alertsCache.filter(function(a){ return a.type===_alertsFilter; });
-  var container = document.getElementById('alerts-container');
-  var subtitle = document.getElementById('alerts-subtitle');
-  if(!container) return;
-
-  var urgentCount = _alertsCache.filter(function(a){ return a.type==='urgent'; }).length;
-  if(subtitle){
-    subtitle.textContent = _alertsCache.length===0
-      ? 'لا توجد تنبيهات — كل شيء على ما يرام ✅'
-      : urgentCount>0
-        ? urgentCount+' تنبيه/تنبيهات عاجلة تحتاج انتباهك'
-        : _alertsCache.length+' تنبيه/تنبيهات لمتابعتها';
-  }
-
-  if(filtered.length===0){
-    container.innerHTML='<div style="text-align:center;padding:60px 20px;background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:12px;color:var(--text2)">'+
-      '<div style="font-size:48px;margin-bottom:12px">🎉</div>'+
-      '<div style="font-size:15px;font-weight:600;color:var(--text)">لا توجد تنبيهات في هذه الفئة</div>'+
-      '<div style="font-size:13px;margin-top:6px">كل شيء على ما يرام!</div></div>';
-    return;
-  }
-
-  container.innerHTML = filtered.map(function(alert, idx){
-    var borderColor = alert.type==='urgent'?'rgba(248,81,73,0.3)':alert.type==='warning'?'rgba(201,168,76,0.3)':'rgba(63,185,80,0.3)';
-    var bgColor = alert.type==='urgent'?'rgba(248,81,73,0.05)':alert.type==='warning'?'rgba(201,168,76,0.05)':'rgba(63,185,80,0.05)';
-    var timeColor = alert.type==='urgent'?'var(--red)':alert.type==='warning'?'var(--gold2)':'var(--green)';
-    return '<div class="alert-item" style="border-color:'+borderColor+';background:'+bgColor+';margin-bottom:12px;position:relative">'+
-      '<div class="alert-dot '+alert.dotClass+'" style="margin-top:4px"></div>'+
-      '<div style="flex:1">'+
-        '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">'+escHtml(alert.title||'')+'</div>'+
-        '<div style="font-size:13px;color:var(--text2);line-height:1.6">'+alert.desc+'</div>'+
-        '<div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap">'+
-          '<span style="font-size:11px;color:'+timeColor+'">'+alert.time+'</span>'+
-          (alert.action?'<button onclick="(_alertsCache['+idx+'].action)()" style="padding:5px 14px;border-radius:6px;border:1px solid '+borderColor+';background:transparent;color:'+timeColor+';font-family:Tajawal,sans-serif;font-size:12px;font-weight:600;cursor:pointer">'+alert.actionLabel+'</button>':'')+
-          (alert.dismissable?'<button onclick="dismissAlert(\''+alert.alertId+'\')" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(27,42,107,0.2);background:transparent;color:var(--text2);font-family:Tajawal,sans-serif;font-size:12px;cursor:pointer">تجاهل</button>':'')+
-        '</div>'+
+function renderFollowupCenter(){
+  var el=document.getElementById('followup-center');
+  if(!el) return;
+  var items=buildFollowupData();
+  if(items.length===0){ el.innerHTML=''; return; }
+  var h='<div style="background:var(--dark2);border:1px solid rgba(248,81,73,0.25);border-radius:14px;padding:16px 18px;margin-bottom:18px">'+
+    '<div style="font-family:Cairo,sans-serif;font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:13px;display:flex;align-items:center;gap:8px"><i class="ti ti-alert-triangle" style="color:var(--red);font-size:17px"></i> يحتاج انتباهك</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:11px">';
+  items.forEach(function(it){
+    h+='<div onclick="showView(\''+it.view+'\')" style="display:flex;align-items:center;gap:11px;background:var(--dark3);border:1px solid rgba(27,42,107,0.2);border-radius:11px;padding:12px 14px;cursor:pointer">'+
+      '<span style="font-size:21px;flex-shrink:0">'+it.icon+'</span>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:12.5px;font-weight:700;color:var(--text)">'+it.label+'</div>'+
+        '<div style="font-size:11px;color:var(--text2);margin-top:2px">'+it.sub+'</div>'+
       '</div>'+
+      (it.count!==''?'<span style="font-family:Cairo,sans-serif;font-size:21px;font-weight:800;color:'+it.color+';flex-shrink:0">'+it.count+'</span>':'')+
     '</div>';
-  }).join('');
+  });
+  h+='</div></div>';
+  el.innerHTML=h;
 }
 
-function updateAlertsBadge(){
-  var alerts = buildSmartAlerts();
-  var badge = document.getElementById('alerts-badge');
-  if(!badge) return;
-  var unread = alerts.filter(function(a){ return !a.dismissable || true; }).length;
-  // فقط التنبيهات العاجلة + غير المقروءة في الـ badge
-  var urgent = alerts.filter(function(a){ return a.type==='urgent'; }).length;
-  if(alerts.length > 0){
-    badge.style.display='inline-flex';
-    badge.textContent = urgent > 0 ? urgent : alerts.length;
-  } else {
-    badge.style.display='none';
-  }
+// إشعار يومي واحد بملخص المتأخرات (لا يتكرر في نفس اليوم)
+function _fuDailyNotify(){
+  try{
+    var items=buildFollowupData();
+    if(items.length===0) return;
+    var today=new Date().toDateString();
+    var key='jund_fu_notified_'+(currentUser&&currentUser.name?currentUser.name:'');
+    if(localStorage.getItem(key)===today) return;
+    localStorage.setItem(key, today);
+    var summary=items.map(function(it){ return it.label+(it.count!==''?' ('+it.count+')':''); }).join('، ');
+    pushNotif('⚠️','لديك بنود تحتاج متابعة', summary, 'dashboard');
+  }catch(e){}
 }
-
-// تحديث badge التنبيهات عند تحميل البوابة
-(function initAlertsBadgeOnLoad(){
-  // سيتم استدعاؤها بعد تسجيل الدخول
-})();
 
 // ===== SIGNATURE SYSTEM =====
 var _sigDrawing=false,_sigCtx=null;
@@ -10838,7 +10673,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.4</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.5</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
@@ -11165,6 +11000,7 @@ function startAdminListeners(){
     _allRequestsCache = fromFB.filter(function(r){ if(!r||!r.id||seen[r.id]) return false; seen[r.id]=true; return true; });
     if(typeof renderReqApprove==='function') renderReqApprove();
     if(typeof renderReqTracking==='function') renderReqTracking();
+    if(typeof renderFollowupCenter==='function') renderFollowupCenter();
   });
   // مستمع المنتظرين
   var l3 = db.collection('system').doc('pendingUsers').onSnapshot(function(doc){
@@ -11192,6 +11028,8 @@ function startAdminListeners(){
     _allAttCache = snap.docs.map(function(d){ return d.data(); });
   });
   _fbListeners = [l1,l2,l3,l4,l5];
+  // إشعار يومي واحد بملخص البنود المعلقة (بعد اكتمال التحميل الأولي)
+  setTimeout(function(){ if(typeof _fuDailyNotify==='function') _fuDailyNotify(); }, 5000);
 }
 
 // مستمع التقارير للموظف العادي
@@ -11296,6 +11134,8 @@ function startUserListener(userName){
     _paInboxInitDone=true;
   });
   _fbListeners = [l,l2,l3,l4,l5];
+  // إشعار يومي واحد بالتذكيرات الشخصية (بعد اكتمال التحميل الأولي)
+  setTimeout(function(){ if(typeof _fuDailyNotify==='function') _fuDailyNotify(); }, 5000);
 }
 // ===== استعادة الجلسة عند تحديث الصفحة =====
 (function restoreSession(){
