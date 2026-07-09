@@ -4070,9 +4070,20 @@ function saveDraft(formType){
   setTimeout(function(){ showView('my-reports'); renderMyReports(); }, 1600);
 }
 
+// ===== التحقق الإجباري من وجود توقيع قبل الإرسال =====
+function requireSignature(){
+  var sig=getUserSignature(currentUser.name);
+  if(sig) return true;
+  showToast('✍️ يجب إضافة توقيعك أولاً من خانة "توقيعي" قبل الإرسال','red');
+  setTimeout(function(){ openSignatureModal(); }, 700);
+  return false;
+}
+
 function sendReport(){
   var tp=currentReportType||document.getElementById('report-type').value;
   if(!tp){showToast('يرجى اختيار نوع التقرير','red');return;}
+  // التوقيع إجباري قبل رفع أي تقرير (ما عدا تعديل الأدمن لتقارير الآخرين)
+  if(!(_editingReport && currentUser.isAdmin) && !requireSignature()) return;
   var newReport={};
   if(tp==='مخالفات مرورية'){ submitTrafficViolation(); return; }
   if(tp==='استلام الوردية للمشرفين'){ submitShiftHandover(); return; }
@@ -6402,6 +6413,7 @@ function collectCctvData(){
 }
 
 function sendCctvReport(){
+  if(!requireSignature()) return;
   var cctv = collectCctvData();
   if(!cctv.shift){ showToast('يرجى اختيار الشفت','red'); return; }
   if(!cctv.date){ showToast('يرجى إدخال التاريخ','red'); return; }
@@ -6512,6 +6524,7 @@ function calcSpKm(){
 }
 
 function sendSitePatrolReport(){
+  if(!requireSignature()) return;
   var shift = document.querySelector('input[name="sp-shift"]:checked');
   if(!shift){ showToast('يرجى اختيار الشفت','red'); return; }
   var spDateRaw = document.getElementById('sp-date').value || '';
@@ -7713,6 +7726,7 @@ function hideReqForm(){
   document.getElementById('req-form-wrap').style.display='none';
 }
 function submitRequest(){
+  if(!requireSignature()) return;
   var now=new Date();
   var req={
     id:getNextSerial('REQ'),
@@ -10422,7 +10436,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.6</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.7</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
