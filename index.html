@@ -3074,13 +3074,35 @@ function _generatePdfFromHtml(fullHtml, filename){
   }
 }
 
+// تنظيف النص من الأحرف غير المسموحة في أسماء الملفات
+function _pdfSafeName(s){
+  return String(s||'').replace(/[\\\/:*?"<>|#%&{}]/g,'').replace(/\s+/g,' ').trim();
+}
+
+// يبني اسم الملف: النوع - العنوان - التاريخ
+function _pdfBuildName(type, title, dateStr){
+  var t=_pdfSafeName(type);
+  var ti=_pdfSafeName(title);
+  // أزل اسم النوع من بداية العنوان حتى لا يتكرر (مثل: واقعة — وجود سغاله)
+  if(ti){
+    ti=ti.replace(new RegExp('^'+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*[—-]*\\s*'),'').trim();
+    ti=ti.replace(/^(واقعة|إفادة|افادة)\s*[—-]*\s*/,'').trim();
+    if(ti.length>40) ti=ti.slice(0,40).trim();
+    if(ti===t) ti='';
+  }
+  // التاريخ بصيغة رقمية YYYY-MM-DD
+  var dd=_pdfSafeName(String(fmtDateNum(dateStr||'')).replace(/\//g,'-'));
+  var parts=[t, ti, dd].filter(function(x){return x;});
+  return parts.join(' - ')+'.pdf';
+}
+
 // تنزيل PDF للتقرير المفتوح حالياً
 function downloadReportPDF(){
   var r=currentReport; if(!r) return;
   showToast('⏳ جاري تجهيز ملف PDF...','gold');
   loadPdfLib().then(function(){
     loadAllSignatures(function(){
-      _pdfFileName='تقرير-'+(r.id||'')+'.pdf';
+      _pdfFileName=_pdfBuildName(r.type||'تقرير', r.title||'', r.date||'');
       _pdfMode=true;
       try{ _doPrintCurrentReport(r); } finally { _pdfMode=false; }
     });
@@ -3095,7 +3117,9 @@ function downloadRequestPDF(){
   showToast('⏳ جاري تجهيز ملف PDF...','gold');
   loadPdfLib().then(function(){
     loadAllSignatures(function(){
-      _pdfFileName='طلب-'+(r.id||'')+'.pdf';
+      // عنوان الطلب: تفاصيله إن وُجدت وإلا اسم مقدم الطلب
+      var reqTitle=(r.detail&&r.detail.trim())?r.detail:(r.author||'');
+      _pdfFileName=_pdfBuildName('طلب '+(r.type||''), reqTitle, r.date||'');
       _pdfMode=true;
       try{ folderPrintRequest(r); } finally { _pdfMode=false; }
     });
@@ -3109,8 +3133,8 @@ function downloadMonthlyPDF(){
   showToast('⏳ جاري تجهيز ملف PDF...','gold');
   loadPdfLib().then(function(){
     var mSel=document.getElementById('mr-month'), ySel=document.getElementById('mr-year');
-    var lbl=(mSel&&ySel)?(monthName(mSel.value)+'-'+ySel.value):'';
-    _pdfFileName='التقرير-الشهري-'+lbl+'.pdf';
+    var lbl=(mSel&&ySel)?(monthName(mSel.value)+' '+ySel.value):'';
+    _pdfFileName=_pdfSafeName('التقرير الشهري - '+lbl)+'.pdf';
     _pdfMode=true;
     try{ printMonthlyReport(); } finally { _pdfMode=false; }
   }).catch(function(){
@@ -10634,7 +10658,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.0</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.1</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
