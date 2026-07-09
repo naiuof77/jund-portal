@@ -2187,6 +2187,11 @@ function openEditInForm(r){
       var aBody=document.getElementById('afada-body'); if(aBody) aBody.value=(r.afada&&r.afada.body)||r.body||'';
       var aDate=document.getElementById('afada-date'); if(aDate&&isoDate) aDate.value=isoDate;
       var aTime=document.getElementById('afada-time'); if(aTime&&r.time) aTime.value=r.time;
+      // الصور المرفقة بالإفادة
+      if(r.images&&r.images.length){
+        incidentImages = r.images.slice();
+        renderIncidentImages();
+      }
     } else if(r.type==='جولات دورية' && r.sp){
       var sp=r.sp;
       var shiftEl=document.querySelector('input[name="sp-shift"][value="'+escHtml(sp.shift||'')+'"]');
@@ -3421,6 +3426,23 @@ function _doPrintCurrentReport(r){
       '</div>'+
       '<div>JOND | AMAAD</div>'+
     '</div>');
+    // الصور المرفقة بالإفادة — كل صورة في صفحة مستقلة
+    if(r.images&&r.images.length>0){
+      w.document.write('</div>');// إغلاق page-wrap
+      r.images.forEach(function(img,idx){
+        var num=idx+1;
+        var total=r.images.length;
+        w.document.write(
+          '<div style="page-break-before:always;display:flex;flex-direction:column;align-items:center;padding:20px 40px;box-sizing:border-box">'+
+            '<div style="width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #eee">'+
+              '<span style="font-size:13px;font-weight:700;color:#1B2A6B">📷 الصورة رقم '+num+' من '+total+'</span>'+
+              '<span style="font-size:11px;color:#999">'+escHtml(r.title)+'</span>'+
+            '</div>'+
+            '<img src="'+img.data+'" style="max-width:100%;max-height:220mm;object-fit:contain;border-radius:8px;border:1px solid #ddd"/>'+
+          '</div>'
+        );
+      });
+    }
   } else {
     w.document.write('<div class="sl">تفاصيل التقرير</div><div class="sv-navy">'+escHtml(r.body)+'</div>');
     w.document.write('<div class="sl">الإجراءات المتخذة</div><div class="sv-gold">'+escHtml(r.actions||'—')+'</div>');
@@ -4165,7 +4187,8 @@ function sendReport(){
       author:currentUser.name,empId:currentUser.empId||'—',
       status:'مُرسل',statusCls:'status-sent',
       body:aBody,actions:'—',result:'',rec:'—',
-      owner:currentUser.name,images:[],
+      owner:currentUser.name,
+      images: incidentImages.map(function(img){ return {name:img.name, data:img.data}; }),
       afada:{subject:aSubject,body:aBody,date:aDate,time:aTime,priority:afPri}
     };
   } else {
@@ -4235,7 +4258,7 @@ function sendReport(){
   // حفظ في Firebase
   var _rpt = newReport;
   // احفظ الصور في localStorage كنسخة احتياطية محلية
-  if(tp==='واقعة' && incidentImages.length>0){
+  if((tp==='واقعة' || tp==='افادة') && incidentImages.length>0){
     try{ localStorage.setItem('jund_imgs_'+_rpt.id, JSON.stringify(incidentImages)); }catch(e){}
   }
   // تحقق من حجم المستند قبل الإرسال (حد Firestore ~1 ميجا)
@@ -6155,9 +6178,9 @@ function togglePatrolForm(val){
   if(genDT) genDT.style.display = needsAfada ? 'none' : 'grid';
   var locTitleRow = document.getElementById('location-title-row');
   if(locTitleRow) locTitleRow.style.display = needsAfada ? 'none' : 'grid';
-  document.getElementById('incident-attach-btn').style.display = needsIncident ? 'flex' : 'none';
-  document.getElementById('incident-attachments-section').style.display = needsIncident ? 'block' : 'none';
-  if(!needsIncident){ incidentImages=[]; renderIncidentImages(); }
+  document.getElementById('incident-attach-btn').style.display = (needsIncident || needsAfada) ? 'flex' : 'none';
+  document.getElementById('incident-attachments-section').style.display = (needsIncident || needsAfada) ? 'block' : 'none';
+  if(!needsIncident && !needsAfada){ incidentImages=[]; renderIncidentImages(); }
   if(needsAfada){
     var now=new Date();
     var aDate=document.getElementById('afada-date');
@@ -10399,7 +10422,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.5</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.6</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
