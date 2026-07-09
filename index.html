@@ -617,6 +617,7 @@ _authReady.then(function(){
     <div class="sidebar">
       <div class="sidebar-section">القائمة الرئيسية</div>
       <div class="sidebar-item active" id="nav-dashboard" onclick="showView('dashboard')"><i class="ti ti-layout-dashboard"></i> لوحة المتابعة</div>
+      <div class="sidebar-item" id="nav-global-search" onclick="showView('global-search')"><i class="ti ti-search"></i> البحث الشامل</div>
       <div class="sidebar-item" id="nav-new-report" onclick="showView('new-report')"><i class="ti ti-file-plus"></i> رفع تقرير جديد</div>
       <div class="sidebar-item" id="nav-my-reports" onclick="showView('my-reports')"><i class="ti ti-files"></i> تقاريري</div>
       <div class="sidebar-item" id="nav-requests" onclick="showView('requests')"><i class="ti ti-send"></i> إنشاء طلب</div>
@@ -1453,6 +1454,31 @@ _authReady.then(function(){
         </div>
         <div id="incidents-status-content" style="margin-top:14px"></div>
       </div>
+      <!-- GLOBAL SEARCH — البحث الشامل -->
+      <div id="view-global-search" class="content-view">
+        <div class="page-title">البحث الشامل</div>
+        <div class="page-subtitle">ابحث في التقارير والطلبات — بالعنوان، النص، الاسم، رقم التقرير، رقم اللوحة، الموقع...</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0 6px">
+          <div style="position:relative;flex:1;min-width:220px">
+            <i class="ti ti-search" style="position:absolute;right:13px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:15px"></i>
+            <input id="gs-input" class="form-ip" type="text" placeholder="اكتب كلمة البحث..." style="padding-right:38px;font-size:14px" oninput="onGlobalSearchInput()"/>
+          </div>
+          <select id="gs-type-filter" class="form-ip" style="width:auto;padding:11px 14px;font-size:13px;cursor:pointer" onchange="doGlobalSearch()">
+            <option value="">كل الأنواع</option>
+            <option value="واقعة">واقعة</option>
+            <option value="مخالفات مرورية">مخالفات مرورية</option>
+            <option value="افادة">إفادة</option>
+            <option value="جولات دورية">جولات دورية</option>
+            <option value="استلام و تسليم دورية">استلام وتسليم دورية</option>
+            <option value="زيارات CCTV">زيارات CCTV</option>
+            <option value="تقرير CCTV">تقرير CCTV</option>
+            <option value="المفاتيح">المفاتيح</option>
+            <option value="استلام الوردية للمشرفين">استلام الوردية</option>
+          </select>
+        </div>
+        <div id="gs-results" style="margin-top:14px"></div>
+      </div>
+
       <!-- MONTHLY REPORT — التقرير الشهري -->
       <div id="view-monthly-report" class="content-view">
         <div class="page-title">التقرير الشهري</div>
@@ -4891,6 +4917,10 @@ function showView(n){
     if(!currentUser.isAdmin && !currentUser.hasIncidentsAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
     filterIncidents('all');
   }
+  if(n==='global-search'){
+    doGlobalSearch();
+    setTimeout(function(){ var gi=document.getElementById('gs-input'); if(gi) gi.focus(); }, 150);
+  }
   if(n==='monthly-report'){
     if(!currentUser.isAdmin && !currentUser.hasAllReportsAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
     initMonthlyReport();
@@ -7462,6 +7492,120 @@ function toggleIncStatus(rid){
     showToast(newStatus==='closed'?'تم إغلاق الواقعة ✅':'تمت إعادة فتح الواقعة ⏳',newStatus==='closed'?'green':'red');
     renderIncidentsStatus();
   }
+}
+
+// ===== البحث الشامل =====
+var _gsRepResults=[], _gsReqResults=[], _gsTimer=null;
+
+// تطبيع الحروف العربية حتى يجد "افادة" و"إفادة" بعضهما
+function normalizeAr(s){
+  return String(s||'')
+    .toLowerCase()
+    .replace(/[\u064B-\u0652\u0670\u0640]/g,'')  // التشكيل والتطويل
+    .replace(/[أإآ]/g,'ا')
+    .replace(/ة/g,'ه')
+    .replace(/ى/g,'ي')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+// النص القابل للبحث في التقرير (يشمل حقول المخالفة والإفادة)
+function _gsHaystackReport(r){
+  var parts=[r.id,r.title,r.body,r.author,r.type,r.date,r.location,r.status,r.incNumber];
+  if(r.tv){ parts.push(r.tv.plate,r.tv.violationType,r.tv.location,r.tv.driverName,r.tv.company); }
+  if(r.afada){ parts.push(r.afada.subject,r.afada.body); }
+  if(r.keys){ parts.push(r.keys.keyName,r.keys.fromName,r.keys.toName); }
+  return normalizeAr(parts.filter(function(x){return x;}).join(' '));
+}
+
+function _gsHaystackRequest(q){
+  return normalizeAr([q.id,q.type,q.author,q.detail,q.date,q.status].filter(function(x){return x;}).join(' '));
+}
+
+// مصادر البحث حسب الصلاحية: الأدمن يبحث في الكل، والمنتسب في تقاريره وطلباته
+function _gsSources(){
+  var canAll=currentUser && (currentUser.isAdmin || currentUser.hasAllReportsAccess);
+  return {
+    reports: canAll ? (_allReportsCache||[]) : (_myReportsCache||[]),
+    requests: canAll ? (_allRequestsCache||[]) : (typeof _myRequestsCache!=='undefined'?(_myRequestsCache||[]):[])
+  };
+}
+
+function onGlobalSearchInput(){
+  clearTimeout(_gsTimer);
+  _gsTimer=setTimeout(doGlobalSearch, 250);
+}
+
+function doGlobalSearch(){
+  var el=document.getElementById('gs-results');
+  if(!el) return;
+  var q=normalizeAr((document.getElementById('gs-input')||{}).value||'');
+  var typeF=(document.getElementById('gs-type-filter')||{}).value||'';
+  if(q.length<2 && !typeF){
+    el.innerHTML='<div style="color:var(--text2);padding:42px;text-align:center;background:var(--dark3);border:1px dashed rgba(27,42,107,0.25);border-radius:14px"><div style="font-size:30px;margin-bottom:8px">🔍</div>اكتب حرفين على الأقل للبحث</div>';
+    return;
+  }
+  var tokens=q?q.split(' ').filter(function(t){return t;}):[];
+  var src=_gsSources();
+
+  // بحث التقارير: كل الكلمات يجب أن تكون موجودة (AND)
+  _gsRepResults=src.reports.filter(function(r){
+    if(!r) return false;
+    if(typeF && r.type!==typeF) return false;
+    if(tokens.length===0) return true;
+    var hay=_gsHaystackReport(r);
+    return tokens.every(function(t){ return hay.indexOf(t)>-1; });
+  }).slice(0,50);
+
+  // بحث الطلبات (فقط إذا لم يُحدد فلتر نوع تقرير)
+  _gsReqResults=(!typeF && tokens.length>0) ? src.requests.filter(function(rq){
+    if(!rq) return false;
+    var hay=_gsHaystackRequest(rq);
+    return tokens.every(function(t){ return hay.indexOf(t)>-1; });
+  }).slice(0,30) : [];
+
+  var typeIcons={'واقعة':'🚨','مخالفات مرورية':'🚗','افادة':'📝','جولات دورية':'🚶','استلام و تسليم دورية':'🔄','زيارات CCTV':'📹','تقرير CCTV':'🎥','المفاتيح':'🔑','استلام الوردية للمشرفين':'📋'};
+  var stColors={'موافق عليه':'var(--green)','مكتمل':'var(--green)','مرفوض':'var(--red)','قيد الانتظار':'var(--gold2)'};
+
+  var total=_gsRepResults.length+_gsReqResults.length;
+  if(total===0){
+    el.innerHTML='<div style="color:var(--text2);padding:42px;text-align:center;background:var(--dark3);border:1px dashed rgba(27,42,107,0.25);border-radius:14px"><div style="font-size:30px;margin-bottom:8px">📭</div>لا توجد نتائج مطابقة</div>';
+    return;
+  }
+
+  var h='<div style="font-size:12px;color:var(--text2);margin-bottom:12px">النتائج: <strong style="color:var(--text);font-family:Cairo,sans-serif">'+total+'</strong>'+(_gsRepResults.length>=50?' (تم عرض أول 50 تقرير — ضيّق البحث)':'')+'</div>';
+
+  if(_gsRepResults.length>0){
+    h+='<div style="font-family:Cairo,sans-serif;font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">📋 التقارير ('+_gsRepResults.length+')</div>';
+    _gsRepResults.forEach(function(r,i){
+      h+='<div onclick="openReport(_gsRepResults['+i+'])" style="display:flex;align-items:center;gap:12px;background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:12px;padding:13px 16px;margin-bottom:9px;cursor:pointer">'+
+        '<span style="font-size:21px;flex-shrink:0">'+(typeIcons[r.type]||'📄')+'</span>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:13.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(r.title||r.type||'')+'</div>'+
+          '<div style="font-size:11.5px;color:var(--text2);margin-top:3px">'+escHtml(r.author||'')+' — '+escHtml(r.date||'')+' — '+escHtml(r.id||'')+'</div>'+
+        '</div>'+
+        '<span style="font-size:11px;font-weight:700;color:'+(stColors[r.status]||'var(--text2)')+';white-space:nowrap">'+escHtml(r.status||'')+'</span>'+
+        '<i class="ti ti-chevron-left" style="color:var(--text2)"></i>'+
+      '</div>';
+    });
+  }
+
+  if(_gsReqResults.length>0){
+    h+='<div style="font-family:Cairo,sans-serif;font-size:13px;font-weight:800;color:var(--text);margin:16px 0 10px">📨 الطلبات ('+_gsReqResults.length+')</div>';
+    _gsReqResults.forEach(function(rq,i){
+      h+='<div onclick="openReq(_gsReqResults['+i+'])" style="display:flex;align-items:center;gap:12px;background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:12px;padding:13px 16px;margin-bottom:9px;cursor:pointer">'+
+        '<span style="font-size:21px;flex-shrink:0">📨</span>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:13.5px;font-weight:700;color:var(--text)">طلب '+escHtml(rq.type||'')+'</div>'+
+          '<div style="font-size:11.5px;color:var(--text2);margin-top:3px">'+escHtml(rq.author||'')+' — '+escHtml(rq.date||'')+' — '+escHtml(rq.id||'')+'</div>'+
+        '</div>'+
+        '<span style="font-size:11px;font-weight:700;color:'+(stColors[rq.status]||'var(--text2)')+';white-space:nowrap">'+escHtml(rq.status||'')+'</span>'+
+        '<i class="ti ti-chevron-left" style="color:var(--text2)"></i>'+
+      '</div>';
+    });
+  }
+
+  el.innerHTML=h;
 }
 
 // ===== التقرير الشهري =====
@@ -10694,7 +10838,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.3</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.4</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
