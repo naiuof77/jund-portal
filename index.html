@@ -596,6 +596,19 @@ _authReady.then(function(){
         <div style="font-size:11px;color:#6B8FD6" id="topbar-role"></div>
       </div>
       <div class="user-avatar" id="topbar-avatar">م</div>
+      <div style="position:relative">
+        <button onclick="toggleNotifPanel()" id="notif-bell-btn" style="background:transparent;border:1px solid rgba(27,42,107,0.3);border-radius:8px;padding:8px 12px;color:var(--text2);font-size:15px;cursor:pointer;position:relative" title="الإشعارات">
+          <i class="ti ti-bell"></i>
+          <span id="notif-badge" style="display:none;position:absolute;top:-6px;left:-6px;background:var(--red);color:#fff;font-size:10px;font-weight:800;font-family:Cairo,sans-serif;min-width:18px;height:18px;line-height:18px;text-align:center;border-radius:10px;padding:0 4px">0</span>
+        </button>
+        <div id="notif-panel" style="display:none;position:absolute;top:48px;left:0;width:330px;max-width:88vw;max-height:420px;overflow-y:auto;background:var(--dark2);border:1px solid rgba(27,42,107,0.35);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.35);z-index:9999">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid rgba(27,42,107,0.2);position:sticky;top:0;background:var(--dark2)">
+            <span style="font-family:Cairo,sans-serif;font-size:13.5px;font-weight:800;color:var(--text)">🔔 الإشعارات</span>
+            <button onclick="clearAllNotifs()" style="background:transparent;border:none;color:var(--red);font-size:11.5px;cursor:pointer;font-family:Tajawal,sans-serif">مسح الكل</button>
+          </div>
+          <div id="notif-list"></div>
+        </div>
+      </div>
       <button onclick="toggleLightMode()" id="theme-toggle-btn" style="background:transparent;border:1px solid rgba(27,42,107,0.3);border-radius:8px;padding:8px 14px;color:var(--text2);font-size:13px;cursor:pointer;font-family:Tajawal,sans-serif;display:flex;align-items:center;gap:6px" title="تبديل الوضع"><i class="ti ti-sun" id="theme-icon"></i></button>
       <button onclick="doLogout()" style="background:transparent;border:1px solid rgba(27,42,107,0.3);border-radius:8px;padding:8px 16px;color:var(--text2);font-size:13px;cursor:pointer;font-family:Tajawal,sans-serif"><i class="ti ti-logout"></i> خروج</button>
     </div>
@@ -10658,7 +10671,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.1</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.2</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
@@ -10783,11 +10796,172 @@ db.collection('system').doc('ping').set({t: Date.now()}).then(function(){
 
 // ===== مستمعات الوقت الفعلي للأدمن =====
 var _fbListeners = [];
+// ===== نظام الإشعارات (صوت + منبثق + سجل) =====
+var _notifList=[];
+var _notifAudioCtx=null;
+
+// تهيئة الصوت بعد أول تفاعل (متطلب iOS و Chrome)
+function _initNotifAudio(){
+  if(_notifAudioCtx) return;
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext;
+    if(AC){ _notifAudioCtx=new AC(); }
+  }catch(e){}
+}
+document.addEventListener('click', function(){ _initNotifAudio(); if(_notifAudioCtx&&_notifAudioCtx.state==='suspended') _notifAudioCtx.resume(); }, {passive:true});
+document.addEventListener('touchstart', function(){ _initNotifAudio(); if(_notifAudioCtx&&_notifAudioCtx.state==='suspended') _notifAudioCtx.resume(); }, {passive:true});
+
+// نغمة تنبيه ثنائية لطيفة (بدون ملفات خارجية)
+function playNotifSound(){
+  try{
+    if(!_notifAudioCtx) _initNotifAudio();
+    if(!_notifAudioCtx) return;
+    if(_notifAudioCtx.state==='suspended') _notifAudioCtx.resume();
+    var t=_notifAudioCtx.currentTime;
+    [[880,0,0.18],[1174.66,0.16,0.22]].forEach(function(n){
+      var o=_notifAudioCtx.createOscillator();
+      var g=_notifAudioCtx.createGain();
+      o.type='sine'; o.frequency.value=n[0];
+      g.gain.setValueAtTime(0.0001, t+n[1]);
+      g.gain.exponentialRampToValueAtTime(0.22, t+n[1]+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+n[1]+n[2]);
+      o.connect(g); g.connect(_notifAudioCtx.destination);
+      o.start(t+n[1]); o.stop(t+n[1]+n[2]+0.05);
+    });
+  }catch(e){}
+}
+
+// طلب إذن إشعارات النظام (مرة واحدة)
+function requestNotifPermission(){
+  try{
+    if('Notification' in window && Notification.permission==='default'){
+      Notification.requestPermission();
+    }
+  }catch(e){}
+}
+
+function _notifStorageKey(){ return 'jund_notifs_'+(currentUser&&currentUser.name?currentUser.name:''); }
+
+function loadNotifs(){
+  try{ _notifList=JSON.parse(localStorage.getItem(_notifStorageKey())||'[]'); }catch(e){ _notifList=[]; }
+  updateNotifBadge();
+}
+
+function _saveNotifs(){
+  try{ localStorage.setItem(_notifStorageKey(), JSON.stringify(_notifList.slice(0,30))); }catch(e){}
+}
+
+// الدالة المركزية: تُصدر صوتاً + إشعاراً منبثقاً + تضيف للسجل
+function pushNotif(icon, title, body, targetView){
+  var n={icon:icon, title:title, body:body||'', view:targetView||'', ts:Date.now(), read:false};
+  _notifList.unshift(n);
+  if(_notifList.length>30) _notifList=_notifList.slice(0,30);
+  _saveNotifs();
+  updateNotifBadge();
+  playNotifSound();
+  showToast(icon+' '+title,'gold');
+  // إشعار نظام (يظهر حتى لو التبويب في الخلفية)
+  try{
+    if('Notification' in window && Notification.permission==='granted' && document.hidden){
+      var sn=new Notification('بوابة جُنْد — '+title, {body:body||'', tag:'jund-'+n.ts});
+      sn.onclick=function(){ try{ window.focus(); this.close(); }catch(e){} };
+    }
+  }catch(e){}
+}
+
+function updateNotifBadge(){
+  var b=document.getElementById('notif-badge');
+  if(!b) return;
+  var unread=_notifList.filter(function(n){return !n.read;}).length;
+  b.textContent=unread>9?'9+':unread;
+  b.style.display=unread>0?'block':'none';
+}
+
+function toggleNotifPanel(){
+  var p=document.getElementById('notif-panel');
+  if(!p) return;
+  var open=p.style.display!=='none';
+  if(open){ p.style.display='none'; return; }
+  renderNotifList();
+  p.style.display='block';
+  // اعتبر الكل مقروءاً عند الفتح
+  _notifList.forEach(function(n){ n.read=true; });
+  _saveNotifs();
+  updateNotifBadge();
+  requestNotifPermission();
+}
+
+// إغلاق اللوحة عند الضغط خارجها
+document.addEventListener('click', function(ev){
+  var p=document.getElementById('notif-panel');
+  var btn=document.getElementById('notif-bell-btn');
+  if(!p||p.style.display==='none') return;
+  if(p.contains(ev.target)||(btn&&btn.contains(ev.target))) return;
+  p.style.display='none';
+});
+
+function _notifTimeAgo(ts){
+  var s=Math.floor((Date.now()-ts)/1000);
+  if(s<60) return 'الآن';
+  if(s<3600) return 'قبل '+Math.floor(s/60)+' دقيقة';
+  if(s<86400) return 'قبل '+Math.floor(s/3600)+' ساعة';
+  return 'قبل '+Math.floor(s/86400)+' يوم';
+}
+
+function renderNotifList(){
+  var el=document.getElementById('notif-list');
+  if(!el) return;
+  if(_notifList.length===0){
+    el.innerHTML='<div style="padding:34px 16px;text-align:center;color:var(--text2);font-size:12.5px">لا توجد إشعارات</div>';
+    return;
+  }
+  var h='';
+  _notifList.forEach(function(n,i){
+    h+='<div onclick="_notifClick('+i+')" style="display:flex;gap:11px;padding:12px 16px;border-bottom:1px solid rgba(27,42,107,0.12);cursor:pointer;'+(n.read?'':'background:rgba(88,166,255,0.06);')+'">'+
+      '<span style="font-size:19px;flex-shrink:0">'+n.icon+'</span>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:12.5px;font-weight:700;color:var(--text)">'+escHtml(n.title)+'</div>'+
+        (n.body?'<div style="font-size:11.5px;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(n.body)+'</div>':'')+
+        '<div style="font-size:10.5px;color:var(--text2);margin-top:3px;opacity:0.7">'+_notifTimeAgo(n.ts)+'</div>'+
+      '</div>'+
+    '</div>';
+  });
+  el.innerHTML=h;
+}
+
+function _notifClick(i){
+  var n=_notifList[i];
+  if(!n) return;
+  document.getElementById('notif-panel').style.display='none';
+  if(n.view) showView(n.view);
+}
+
+function clearAllNotifs(){
+  _notifList=[];
+  _saveNotifs();
+  updateNotifBadge();
+  renderNotifList();
+}
+
 function startAdminListeners(){
   // أوقف المستمعات القديمة
   try{ _fbListeners.forEach(function(u){ if(typeof u==='function') u(); }); _fbListeners=[]; }catch(e){}
+  loadNotifs();
+  requestNotifPermission();
+  var _repInit=false, _reqInit=false, _pendPrevLen=null;
   // مستمع التقارير
   var l1 = db.collection('reports').orderBy('_ts','desc').onSnapshot(function(snap){
+    // إشعار بالتقارير الجديدة (بعد التحميل الأولي، وليس تقارير الأدمن نفسه)
+    if(_repInit){
+      snap.docChanges().forEach(function(ch){
+        if(ch.type==='added'){
+          var nr=ch.doc.data();
+          if(nr && nr.author!==currentUser.name){
+            pushNotif('📋','تقرير جديد: '+(nr.type||''), 'من '+(nr.author||'')+(nr.title?' — '+nr.title:''), 'all-reports');
+          }
+        }
+      });
+    } else { _repInit=true; }
     var fromFB = snap.docs.map(function(d){ return d.data(); });
     _allReportsCache = fromFB;
     // تقارير الأدمن نفسه (لصفحة "تقاريري") + إيقاف شاشة التحميل
@@ -10807,6 +10981,17 @@ function startAdminListeners(){
   });
   // مستمع الطلبات
   var l2 = db.collection('requests').orderBy('_ts','desc').onSnapshot(function(snap){
+    // إشعار بالطلبات الجديدة
+    if(_reqInit){
+      snap.docChanges().forEach(function(ch){
+        if(ch.type==='added'){
+          var nq=ch.doc.data();
+          if(nq && nq.author!==currentUser.name){
+            pushNotif('📨','طلب جديد: '+(nq.type||''), 'من '+(nq.author||''), 'req-approve');
+          }
+        }
+      });
+    } else { _reqInit=true; }
     var fromFB = snap.docs.map(function(d){ return d.data(); });
     // إزالة التكرار بالـ ID
     var seen={};
@@ -10817,7 +11002,14 @@ function startAdminListeners(){
   // مستمع المنتظرين
   var l3 = db.collection('system').doc('pendingUsers').onSnapshot(function(doc){
     if(doc.exists && doc.data().list){
-      pendingUsers = doc.data().list;
+      var newList=doc.data().list;
+      // إشعار عند وصول طلب تسجيل جديد
+      if(_pendPrevLen!==null && newList.length>_pendPrevLen){
+        var newest=newList[newList.length-1];
+        pushNotif('👤','طلب تسجيل جديد', (newest&&newest.name)?newest.name:'', 'pending-approvals');
+      }
+      _pendPrevLen=newList.length;
+      pendingUsers = newList;
       renderPendingApprovals();
     }
   });
@@ -10839,8 +11031,24 @@ function startAdminListeners(){
 function startUserListener(userName){
   // أوقف المستمعات القديمة
   try{ _fbListeners.forEach(function(u){ if(typeof u==='function') u(); }); _fbListeners=[]; }catch(e){}
+  loadNotifs();
+  requestNotifPermission();
+  var _myRepStatus={}, _myRepInit=false, _myReqStatus={}, _myReqInit=false;
   _myReportsLoading = true; // ننتظر Firebase
   var l = db.collection('reports').where('author','==',userName).onSnapshot(function(snap){
+    // إشعار عند تغيّر حالة تقرير من تقاريري
+    snap.docChanges().forEach(function(ch){
+      var r=ch.doc.data(); if(!r||!r.id) return;
+      if(_myRepInit && ch.type==='modified'){
+        var old=_myRepStatus[r.id];
+        if(old!==undefined && old!==r.status){
+          if(r.status==='موافق عليه') pushNotif('✅','تمت الموافقة على تقريرك', r.title||r.type||'', 'my-reports');
+          else if(r.status==='مرفوض') pushNotif('❌','تم رفض تقريرك', (r.title||r.type||'')+(r.rejectReason?' — '+r.rejectReason:''), 'my-reports');
+        }
+      }
+      _myRepStatus[r.id]=r.status;
+    });
+    _myRepInit=true;
     _myReportsLoading = false;
     var seen={};
     _myReportsCache = snap.docs.map(function(d){ return d.data(); }).filter(function(r){
@@ -10861,6 +11069,20 @@ function startUserListener(userName){
     renderMyReports();
   });
   var l2 = db.collection('requests').where('author','==',userName).onSnapshot(function(snap){
+    // إشعار عند تغيّر حالة طلب من طلباتي
+    snap.docChanges().forEach(function(ch){
+      var q=ch.doc.data(); if(!q||!q.id) return;
+      if(_myReqInit && ch.type==='modified'){
+        var old=_myReqStatus[q.id];
+        if(old!==undefined && old!==q.status){
+          if(q.status==='موافق عليه') pushNotif('✅','تمت الموافقة على طلبك', 'طلب '+(q.type||''), 'my-tracking');
+          else if(q.status==='مرفوض') pushNotif('❌','تم رفض طلبك', 'طلب '+(q.type||'')+(q.rejectReason?' — '+q.rejectReason:''), 'my-tracking');
+          else if(q.status==='مكتمل') pushNotif('🏁','اكتمل طلبك', 'طلب '+(q.type||''), 'my-tracking');
+        }
+      }
+      _myReqStatus[q.id]=q.status;
+    });
+    _myReqInit=true;
     var seen={};
     _myRequestsCache = snap.docs.map(function(d){ return d.data(); }).filter(function(r){ if(!r||!r.id||seen[r.id]) return false; seen[r.id]=true; return true; });
     _myRequestsCache.sort(function(a,b){ return (b._ts||0)-(a._ts||0); });
