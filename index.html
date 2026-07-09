@@ -2968,6 +2968,7 @@ function _generatePdfFromHtml(fullHtml, filename){
     var parser=new DOMParser();
     var doc=parser.parseFromString(fullHtml,'text/html');
     container=document.createElement('div');
+    container.id='jund-pdf-root';
     container.setAttribute('dir','rtl');
     // مثبّتة في أعلى الشاشة خلف التطبيق (وليست خارج الشاشة) حتى يرسمها html2canvas بشكل صحيح
     container.style.cssText='position:fixed;top:0;left:0;width:794px;background:#fff;color:#1a1a1a;z-index:-99999;pointer-events:none';
@@ -2975,8 +2976,9 @@ function _generatePdfFromHtml(fullHtml, filename){
     var styles=doc.querySelectorAll('style');
     for(var i=0;i<styles.length;i++){ container.appendChild(styles[i].cloneNode(true)); }
     // اجعل ارتفاع الصفحة يطابق نسبة A4 عند عرض 794px
+    // + عطّل تباعد الأحرف داخل حاوية PDF فقط — html2canvas يكسر اتصال الحروف العربية مع letter-spacing
     var fix=document.createElement('style');
-    fix.textContent='.page-wrap{min-height:1115px !important}';
+    fix.textContent='#jund-pdf-root .page-wrap{min-height:1115px !important} #jund-pdf-root *{letter-spacing:normal !important;word-spacing:normal !important}';
     container.appendChild(fix);
 
     // ===== تجميع المحتوى في "صفحات" حسب فواصل page-break =====
@@ -10632,7 +10634,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v9.9</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.0</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
