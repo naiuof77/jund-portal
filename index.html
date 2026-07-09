@@ -1181,7 +1181,7 @@ _authReady.then(function(){
 
           <!-- مرفقات الواقعة -->
           <div id="incident-attachments-section" style="display:none;margin-top:20px">
-            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px"><i class="ti ti-photo" style="color:var(--gold2)"></i> الصور المرفقة</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px"><i class="ti ti-photo" style="color:var(--gold2)"></i> الصور المرفقة <span id="incident-images-count" style="font-size:11px;color:var(--text2);font-weight:400">(0 من 4)</span></div>
             <div id="incident-images-preview" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px"></div>
           </div>
 
@@ -1234,7 +1234,7 @@ _authReady.then(function(){
 
               <!-- صور المخالفة - إجبارية - متعددة -->
               <div class="form-gp">
-                <label class="form-lp">صور المخالفة <span style="color:var(--red)">*</span> <span style="font-size:11px;color:var(--text2);font-weight:400">(يمكن إرفاق أكثر من صورة)</span></label>
+                <label class="form-lp">صور المخالفة <span style="color:var(--red)">*</span> <span style="font-size:11px;color:var(--text2);font-weight:400">(بحد أقصى 4 صور)</span></label>
                 <label style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:10px 18px;background:rgba(248,81,73,0.08);border:1px dashed rgba(248,81,73,0.3);border-radius:8px;color:var(--red);font-size:13px;font-weight:600;width:fit-content">
                   <i class="ti ti-camera"></i> إرفاق صور
                   <input type="file" id="tv-photo-input" accept="image/*" multiple style="display:none" onchange="loadTvPhotos(this)"/>
@@ -4121,8 +4121,19 @@ function compressImage(dataUrl, maxW, quality){
   });
 }
 
+var MAX_REPORT_IMAGES=4;
 function onIncidentImagesChange(input){
   var files = Array.from(input.files);
+  // الحد الأقصى 4 صور لكل تقرير
+  var slots = MAX_REPORT_IMAGES - incidentImages.length;
+  if(slots<=0){
+    showToast('الحد الأقصى '+MAX_REPORT_IMAGES+' صور لكل تقرير — احذف صورة أولاً','red');
+    input.value=''; return;
+  }
+  if(files.length>slots){
+    showToast('الحد الأقصى '+MAX_REPORT_IMAGES+' صور — تم أخذ أول '+slots+(slots===1?' صورة':' صور')+' فقط','red');
+    files=files.slice(0, slots);
+  }
   files.forEach(function(file){
     var reader = new FileReader();
     reader.onload = function(e){
@@ -4140,6 +4151,8 @@ function onIncidentImagesChange(input){
 function renderIncidentImages(){
   var preview = document.getElementById('incident-images-preview');
   if(!preview) return;
+  var cnt=document.getElementById('incident-images-count');
+  if(cnt) cnt.textContent='('+incidentImages.length+' من '+MAX_REPORT_IMAGES+')';
   if(incidentImages.length === 0){
     preview.innerHTML = '<div style="font-size:12px;color:var(--text2)">لم يتم إرفاق صور بعد</div>';
     return;
@@ -7042,6 +7055,16 @@ var tvPhotosData=[];
 function loadTvPhotos(input){
   if(!input.files||!input.files.length) return;
   var files=Array.from(input.files);
+  // الحد الأقصى 4 صور لكل مخالفة
+  var slots = MAX_REPORT_IMAGES - tvPhotosData.length;
+  if(slots<=0){
+    showToast('الحد الأقصى '+MAX_REPORT_IMAGES+' صور لكل مخالفة — احذف صورة أولاً','red');
+    input.value=''; return;
+  }
+  if(files.length>slots){
+    showToast('الحد الأقصى '+MAX_REPORT_IMAGES+' صور — تم أخذ أول '+slots+(slots===1?' صورة':' صور')+' فقط','red');
+    files=files.slice(0, slots);
+  }
   var remaining=files.length;
   files.forEach(function(file){
     var reader=new FileReader();
@@ -10671,7 +10694,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.2</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.3</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
