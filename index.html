@@ -2032,22 +2032,6 @@ _authReady.then(function(){
 
       </div>
 
-      <!-- ALL REPORTS -->
-      <div id="view-all-reports" class="content-view">
-        <div class="page-title">جميع التقارير</div>
-        <div class="page-subtitle">اضغط على أي تقرير لعرض تفاصيله الكاملة وطباعته</div>
-        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
-          <select class="form-ip" style="width:auto;padding:9px 14px;font-size:13px"><option>كل الأنواع</option><option>يومية</option><option>حوادث</option><option>زوار</option></select>
-          <input class="form-ip" type="text" placeholder="🔍 بحث..." style="flex:1;min-width:160px;padding:9px 14px;font-size:13px"/>
-        </div>
-        <div class="report-list">
-          <div class="report-item" onclick="openReport(reports[0])"><span class="report-type-badge badge-incident">حادثة</span><div class="report-info"><div class="report-title">تجاوز غير مصرح — المدخل 3</div><div class="report-meta">محمد الشمري — 24 مايو 2026 — عاجل</div></div><span class="report-status status-sent">مُرسل</span><i class="ti ti-chevron-left report-arrow"></i></div>
-          <div class="report-item" onclick="openReport(reports[1])"><span class="report-type-badge badge-daily">يومي</span><div class="report-info"><div class="report-title">تقرير نوبة الصباح — القطاع A</div><div class="report-meta">محمد الشمري — 24 مايو 2026</div></div><span class="report-status status-sent">مُرسل</span><i class="ti ti-chevron-left report-arrow"></i></div>
-          <div class="report-item" onclick="openReport(reports[2])"><span class="report-type-badge badge-visitor">زوار</span><div class="report-info"><div class="report-title">سجل زوار القطاع الشمالي</div><div class="report-meta">خالد العمري — 23 مايو 2026</div></div><span class="report-status status-sent">مُرسل</span><i class="ti ti-chevron-left report-arrow"></i></div>
-          <div class="report-item" onclick="openReport(reports[3])"><span class="report-type-badge badge-patrol">دورية</span><div class="report-info"><div class="report-title">تقرير الدورية المسائية</div><div class="report-meta">أحمد القحطاني — 22 مايو 2026</div></div><span class="report-status status-pending">قيد المراجعة</span><i class="ti ti-chevron-left report-arrow"></i></div>
-          <div class="report-item" onclick="openReport(reports[4])"><span class="report-type-badge badge-incident">حادثة</span><div class="report-info"><div class="report-title">شخص مشبوه في محيط المبنى</div><div class="report-meta">محمد الشمري — 20 مايو 2026 — متوسط</div></div><span class="report-status status-sent">مُرسل</span><i class="ti ti-chevron-left report-arrow"></i></div>
-        </div>
-      </div>
 
     </div>
   </div>
@@ -4649,16 +4633,10 @@ var activeUsers = [];
 
 function getRankClass(rank){var idx=RANKS.indexOf(rank);return idx>=0?RANK_CLASSES[idx]:'rank-1';}
 
-function switchUserTab(tab){
-  document.getElementById('upanel-pending').style.display=tab==='pending'?'block':'none';
-  document.getElementById('upanel-active').style.display=tab==='active'?'block':'none';
-  document.getElementById('utab-pending').style.background=tab==='pending'?'var(--navy)':'var(--dark3)';
-  document.getElementById('utab-pending').style.color=tab==='pending'?'#fff':'var(--text2)';
-  document.getElementById('utab-pending').style.border=tab==='pending'?'none':'1px solid rgba(27,42,107,0.3)';
-  document.getElementById('utab-active').style.background=tab==='active'?'var(--navy)':'var(--dark3)';
-  document.getElementById('utab-active').style.color=tab==='active'?'#fff':'var(--text2)';
-  document.getElementById('utab-active').style.border=tab==='active'?'none':'1px solid rgba(27,42,107,0.3)';
-  if(tab==='active') renderUsersList(); if(typeof renderPermsList==="function") renderPermsList();
+function switchUserTab_legacy(tab){
+  // نسخة قديمة كانت تشير لعناصر محذوفة (upanel/utab) — استُبدلت بالنسخة المتوافقة أدناه
+  if(tab==='active' && typeof renderUsersList==='function') renderUsersList();
+  if(typeof renderPermsList==="function") renderPermsList();
 }
 
 function renderActiveUsers(){
@@ -10673,7 +10651,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.5</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.6</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
