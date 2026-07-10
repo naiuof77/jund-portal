@@ -4846,6 +4846,9 @@ function closeSidebar(){
 }
 
 function showView(n){
+  // حماية الصلاحيات — تمنع الوصول للأقسام المحمية قبل تفعيل الصفحة نهائياً
+  if(n==='folders' && !currentUser.isAdmin && !currentUser.hasFolderAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
+  if(n==='incidents-status' && !currentUser.isAdmin && !currentUser.hasIncidentsAccess){showToast('ليس لديك صلاحية لهذا القسم','red');return;}
   closeSidebar();
   // إغلاق أي نافذة منبثقة عالقة وإرجاع التمرير حتى لا تتجمد الصفحة
   document.querySelectorAll('.modal-overlay.open').forEach(function(m){m.classList.remove('open');});
@@ -9830,9 +9833,11 @@ function decidePAModal(decision){
   showToast(decision==='approved'?'✅ تمت الموافقة — النموذج انتقل للمجلدات':'❌ تم رفض النموذج', decision==='approved'?'green':'red');
   renderPreviewApprove();
   if(decision==='approved'){
-    // المستلِم يذهب لمجلداته — وهي الآن تقرأ من _myReportsCache المُحدَّث
+    // المستلِم يذهب لمجلداته فقط إن كان يملك صلاحية المجلدات — وإلا يبقى مكانه
     setTimeout(function(){
-      showView('folders'); fNav('root');
+      if(currentUser.isAdmin || currentUser.hasFolderAccess){
+        showView('folders'); fNav('root');
+      }
     },1200);
   }
 }
@@ -10651,7 +10656,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.6</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.7</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
