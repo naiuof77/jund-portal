@@ -148,7 +148,7 @@ body.mobile-mode #btn-mobile-toggle .ti-device-laptop{display:none}
 .topbar-user{display:flex;align-items:center;gap:12px}
 .user-avatar{width:38px;height:38px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff}
 .portal-body{display:flex;flex:1;min-height:calc(100vh - 64px)}
-.sidebar{width:260px;background:var(--dark2);border-left:1px solid rgba(27,42,107,0.2);padding:20px 0;flex-shrink:0;overflow-y:auto;position:fixed;top:64px;right:0;height:calc(100vh - 64px);z-index:200;transform:translateX(100%);transition:transform .28s ease;box-shadow:-4px 0 24px rgba(0,0,0,0.18)}
+.sidebar{width:260px;background:var(--dark2);border-left:1px solid rgba(27,42,107,0.2);padding:20px 0 70px;flex-shrink:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;position:fixed;top:64px;right:0;height:calc(100vh - 64px);height:calc(100dvh - 64px);z-index:200;transform:translateX(100%);transition:transform .28s ease;box-shadow:-4px 0 24px rgba(0,0,0,0.18)}
 body.sidebar-open .sidebar{transform:translateX(0)}
 .sidebar-overlay{position:fixed;inset:64px 0 0 0;background:rgba(0,0,0,0.45);z-index:199;opacity:0;visibility:hidden;transition:opacity .28s ease}
 body.sidebar-open .sidebar-overlay{opacity:1;visibility:visible}
@@ -293,7 +293,7 @@ body.sidebar-open .sidebar-overlay{opacity:1;visibility:visible}
 .alert-item{display:flex;align-items:flex-start;gap:14px;padding:16px 20px;background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:10px;margin-bottom:12px}
 .alert-dot{width:9px;height:9px;border-radius:50%;margin-top:5px;flex-shrink:0}
 .dot-red{background:var(--red)}.dot-gold{background:var(--gold2)}.dot-green{background:var(--green)}
-.badge-count{background:var(--red);color:white;width:19px;height:19px;border-radius:50%;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-right:4px}
+.badge-count{background:var(--red);color:#fff;min-width:19px;height:19px;line-height:19px;padding:0 5px;box-sizing:border-box;border-radius:10px;font-size:10px;font-weight:700;font-family:"Cairo",sans-serif;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-right:4px}
 /* USERS */
 .admin-bar{background:rgba(248,81,73,0.07);border:1px solid rgba(248,81,73,0.2);border-radius:8px;padding:12px 18px;margin-bottom:22px;font-size:13px;color:var(--red);display:flex;align-items:center;gap:8px}
 .user-row{background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:10px;padding:16px 22px;display:flex;align-items:center;gap:16px;margin-bottom:12px}
@@ -4028,7 +4028,7 @@ function _finishLogin(u,a,name,empId,perms,fixedData){
       if(!doc.exists) return;
       var pending=(doc.data().list||[]).filter(function(x){return x.paStatus==='pending';}).length;
       var nb=document.getElementById('pa-nav-badge');
-      if(nb){nb.textContent=pending;nb.style.display=pending>0?'inline':'none';}
+      if(nb){nb.textContent=pending;nb.style.display=pending>0?'inline-flex':'none';}
     }).catch(function(){});
   }
   setTimeout(updateAlertsBadge,300);
@@ -8581,7 +8581,7 @@ function renderReqTracking(){
   var filtered=currentReqFilter==='all'?allR:allR.filter(function(r){return r.type===currentReqFilter;});
   // update badge
   var badge=document.getElementById('req-tracking-badge');
-  if(badge){if(allR.length>0){badge.textContent=allR.length;badge.style.display='inline';}else{badge.style.display='none';}}
+  if(badge){if(allR.length>0){badge.textContent=allR.length;badge.style.display='inline-flex';}else{badge.style.display='none';}}
   var list=document.getElementById('req-tracking-list');
   if(!list) return;
   if(filtered.length===0){
@@ -8695,7 +8695,7 @@ function renderReqApprove(){
   // update badge
   var badge=document.getElementById('req-tracking-badge');
   var pendingCount=allR.filter(function(r){return r.status==='قيد الانتظار';}).length;
-  if(badge){if(pendingCount>0){badge.textContent=pendingCount;badge.style.display='inline';}else{badge.style.display='none';}}
+  if(badge){if(pendingCount>0){badge.textContent=pendingCount;badge.style.display='inline-flex';}else{badge.style.display='none';}}
 
   // render stats
   renderReqApproveStats(allR);
@@ -9122,7 +9122,7 @@ function renderPendingApprovals(){
   var badge=document.getElementById('pending-approvals-badge');
   var pending=pendingUsers.filter(function(u){return !u.rejected;});
   if(badge){
-    if(pending.length>0){badge.textContent=pending.length;badge.style.display='inline-block';}
+    if(pending.length>0){badge.textContent=pending.length;badge.style.display='inline-flex';}
     else badge.style.display='none';
   }
   if(pending.length===0){
@@ -9422,7 +9422,7 @@ function updateMyReqBadge(){
   try{readIds=JSON.parse(localStorage.getItem('jund_req_read_'+currentUser.name)||'{}');}catch(e){}
   var unread=saved.filter(function(x){return (x.status==='موافق عليه'||x.status==='مرفوض')&&!readIds[x.id];}).length;
   var badge=document.getElementById('my-req-status-badge');
-  if(badge){if(unread>0){badge.textContent=unread;badge.style.display='inline';}else{badge.style.display='none';}}
+  if(badge){if(unread>0){badge.textContent=unread;badge.style.display='inline-flex';}else{badge.style.display='none';}}
 }
 function showPreviewApprove(){
   renderPreviewApprove();
@@ -9466,7 +9466,7 @@ function _renderPAList(inbox){
   // تحديث badge الزر في الشريط الجانبي
   var pending=inbox.filter(function(x){return x.paStatus==='pending';}).length;
   var navBadge=document.getElementById('pa-nav-badge');
-  if(navBadge){navBadge.textContent=pending;navBadge.style.display=pending>0?'inline':'none';}
+  if(navBadge){navBadge.textContent=pending;navBadge.style.display=pending>0?'inline-flex':'none';}
 
   var filtered=inbox;
   if(paFilter==='pending')  filtered=inbox.filter(function(x){return x.paStatus==='pending';});
@@ -9866,7 +9866,7 @@ function showMyReqStatus(){
     // update badge
     var pending=saved.filter(function(x){return x.status==='قيد الانتظار';}).length;
     var badge=document.getElementById('my-req-status-badge');
-    if(badge){if(pending>0){badge.textContent=pending;badge.style.display='inline';}else{badge.style.display='none';}}
+    if(badge){if(pending>0){badge.textContent=pending;badge.style.display='inline-flex';}else{badge.style.display='none';}}
   }
   popup.style.display='flex';
 }
@@ -10656,7 +10656,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.7</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.8</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
@@ -11106,7 +11106,7 @@ function startUserListener(userName){
     var pending = list.filter(function(x){return x.paStatus==='pending';});
     // حدّث الـ badge
     var navBadge=document.getElementById('pa-nav-badge');
-    if(navBadge){navBadge.textContent=pending.length;navBadge.style.display=pending.length>0?'inline':'none';}
+    if(navBadge){navBadge.textContent=pending.length;navBadge.style.display=pending.length>0?'inline-flex':'none';}
     // إذا صفحة المعاينة والقبول مفتوحة، أعد رسمها
     var paView=document.getElementById('view-preview-approve');
     if(paView && paView.classList.contains('active')) renderPreviewApprove();
