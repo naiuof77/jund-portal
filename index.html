@@ -4497,7 +4497,9 @@ function sendReport(){
     if(_editingReport.empId) newReport.empId = _editingReport.empId;
     newReport.editedByAdmin = true;
     newReport.editedAt = new Date().toLocaleString('ar-SA');
-    _saveEditedReport(newReport, _editingReport.id, _editingReport.author);
+    var _editReason=askActionReason('اذكر سبب التعديل (إجباري):');
+    if(_editReason===null){showToast('تم إلغاء حفظ التعديل','red');return;}
+    _saveEditedReport(newReport, _editingReport.id, _editingReport.author, _editReason);
     _editingReport = null;
     incidentImages = [];
     renderIncidentImages();
@@ -5464,8 +5466,13 @@ function renderFolderContent(){
   }
 }
 
-function _saveEditedReport(newReport, oldId, authorKey){
-  logActivity('تعديل تقرير', (newReport.title||newReport.type||'')+' ('+oldId+')', 'صاحب التقرير: '+(authorKey||''));
+function _saveEditedReport(newReport, oldId, authorKey, editReason){
+  var _changes=[];
+  try{ if(_editingReport) _changes=_diffReports(_editingReport, newReport); }catch(e){}
+  var _details='صاحب التقرير: '+(authorKey||'غير معروف')
+    +' — سبب التعديل: '+(editReason||'لم يُذكر')
+    +' — التغييرات: '+(_changes.length?_changes.join(' | '):'لا توجد تغييرات في الحقول');
+  logActivity('تعديل تقرير', (newReport.title||newReport.type||'')+' ('+oldId+')', _details);
   // احفظ الجديد أولاً، وبعد نجاح الحفظ احذف القديم (فقط إذا تغيّر الـ ID)
   // هذا يمنع فقدان التقرير لو فشل أحد الإجراءات
   fbSaveReport(newReport, authorKey).then(function(){
@@ -5487,6 +5494,9 @@ function folderDeleteReport(rIdx){
   if(!confirm('هل تريد حذف هذا التقرير؟')) return;
   var r=reports[rIdx];
   if(!r) return;
+  var _delReason=askActionReason('اذكر سبب حذف التقرير (إجباري):');
+  if(_delReason===null) return;
+  logReportDeletion(r.id, r.author, _delReason, r);
   _deleteReportFromAll(r.id);
   if(r.type==='زيارات CCTV'&&r.sharedCctv) try{localStorage.removeItem('jund_cctv_visits_'+r.date);}catch(e){}
   reports.splice(rIdx,1);
@@ -5497,6 +5507,9 @@ function folderDeleteReport(rIdx){
 function folderDeleteRequest(reqId, ownerName){
   if(!currentUser.isAdmin){showToast('صلاحية الحذف للأدمن فقط','red');return;}
   if(!confirm('هل تريد حذف هذا الطلب؟')) return;
+  var _delReason=askActionReason('اذكر سبب حذف الطلب (إجباري):');
+  if(_delReason===null) return;
+  logRequestDeletion(reqId, ownerName, _delReason);
   _deleteReqFromAll(reqId);
   renderFolderContent();
   if(typeof renderMyTrackingPage==='function') renderMyTrackingPage();
@@ -5615,18 +5628,13 @@ function folderQuickPrintObj(r){
 }
 
 function folderDeleteReportById(rId, ownerName){
-  logActivity('حذف تقرير', rId, ownerName?('صاحب التقرير: '+ownerName):'');
   if(!currentUser.isAdmin){showToast('صلاحية الحذف للأدمن فقط','red');return;}
   if(!confirm('هل تريد حذف هذا التقرير؟')) return;
+  var _delReason=askActionReason('اذكر سبب حذف التقرير (إجباري):');
+  if(_delReason===null) return;
   // ابحث عن التقرير قبل الحذف
-  var deletedRep=null;
-  try{
-    Object.keys(localStorage).filter(function(k){return k.indexOf('jund_reports_')===0;}).forEach(function(key){
-      if(deletedRep) return;
-      var saved=JSON.parse(localStorage.getItem(key)||'[]');
-      deletedRep=saved.find(function(x){return x.id===rId;})||deletedRep;
-    });
-  }catch(e){}
+  var deletedRep=_findReportById(rId);
+  logReportDeletion(rId, ownerName, _delReason, deletedRep);
   _deleteReportFromAll(rId);
   if(deletedRep&&deletedRep.type==='زيارات CCTV'&&deletedRep.sharedCctv){
     try{localStorage.removeItem('jund_cctv_visits_'+deletedRep.date);}catch(e){}
@@ -6187,7 +6195,9 @@ function submitShiftHandover(){
     newReport.status=_editingReport.status; newReport.statusCls=_editingReport.statusCls;
     if(_editingReport.empId) newReport.empId=_editingReport.empId;
     newReport.editedByAdmin=true; newReport.editedAt=new Date().toLocaleString('ar-SA');
-    _saveEditedReport(newReport, _editingReport.id, _editingReport.author); _editingReport=null;
+    var _editReason=askActionReason('اذكر سبب التعديل (إجباري):');
+    if(_editReason===null){showToast('تم إلغاء حفظ التعديل','red');return;}
+    _saveEditedReport(newReport, _editingReport.id, _editingReport.author, _editReason); _editingReport=null;
   } else {
     fbSaveReport(newReport, currentUser.name).catch(function(e){console.error('خطأ في حفظ التقرير:',e);});
   }
@@ -6256,7 +6266,9 @@ function sendKeysHandoverReport(){
     newReport.status=_editingReport.status; newReport.statusCls=_editingReport.statusCls;
     if(_editingReport.empId) newReport.empId=_editingReport.empId;
     newReport.editedByAdmin=true; newReport.editedAt=new Date().toLocaleString('ar-SA');
-    _saveEditedReport(newReport, _editingReport.id, _editingReport.author);
+    var _editReason=askActionReason('اذكر سبب التعديل (إجباري):');
+    if(_editReason===null){showToast('تم إلغاء حفظ التعديل','red');return;}
+    _saveEditedReport(newReport, _editingReport.id, _editingReport.author, _editReason);
     _editingReport=null;
   } else {
     fbSaveReport(newReport, currentUser.name).catch(function(e){console.error('خطأ في حفظ التقرير:',e);});
@@ -6321,7 +6333,9 @@ function sendKeysReport(){
     newReport.status=_editingReport.status; newReport.statusCls=_editingReport.statusCls;
     if(_editingReport.empId) newReport.empId=_editingReport.empId;
     newReport.editedByAdmin=true; newReport.editedAt=new Date().toLocaleString('ar-SA');
-    _saveEditedReport(newReport, _editingReport.id, _editingReport.author);
+    var _editReason=askActionReason('اذكر سبب التعديل (إجباري):');
+    if(_editReason===null){showToast('تم إلغاء حفظ التعديل','red');return;}
+    _saveEditedReport(newReport, _editingReport.id, _editingReport.author, _editReason);
     _editingReport=null;
   } else {
     fbSaveReport(newReport, currentUser.name).catch(function(e){console.error('خطأ في حفظ التقرير:',e);});
@@ -7017,14 +7031,10 @@ function renderAllReports(){
 
 function adminDeleteReport(reportId, ownerName){
   if(!currentUser.isAdmin) return;
-  var deletedReport=null;
-  try{
-    Object.keys(localStorage).filter(function(k){return k.indexOf('jund_reports_')===0;}).forEach(function(key){
-      if(deletedReport) return;
-      var saved=JSON.parse(localStorage.getItem(key)||'[]');
-      deletedReport=saved.find(function(r){return r.id===reportId;})||deletedReport;
-    });
-  }catch(e){}
+  var _delReason=askActionReason('اذكر سبب حذف التقرير (إجباري):');
+  if(_delReason===null) return;
+  var deletedReport=_findReportById(reportId);
+  logReportDeletion(reportId, ownerName, _delReason, deletedReport);
   _deleteReportFromAll(reportId);
   if(deletedReport&&deletedReport.type==='زيارات CCTV'&&deletedReport.sharedCctv){
     try{localStorage.removeItem('jund_cctv_visits_'+deletedReport.date);}catch(e){}
@@ -7131,7 +7141,9 @@ function submitTrafficViolation(){
     newReport.status=_editingReport.status; newReport.statusCls=_editingReport.statusCls;
     if(_editingReport.empId) newReport.empId=_editingReport.empId;
     newReport.editedByAdmin=true; newReport.editedAt=new Date().toLocaleString('ar-SA');
-    _saveEditedReport(newReport, _editingReport.id, _editingReport.author);
+    var _editReason=askActionReason('اذكر سبب التعديل (إجباري):');
+    if(_editReason===null){showToast('تم إلغاء حفظ التعديل','red');return;}
+    _saveEditedReport(newReport, _editingReport.id, _editingReport.author, _editReason);
     _editingReport=null;
   } else {
     if(tvPhotosData.length>0){ try{ localStorage.setItem('jund_imgs_'+newReport.id, JSON.stringify(tvPhotosData)); }catch(e){} }
@@ -7194,6 +7206,81 @@ function logActivity(action, target, details){
       details: details||''
     }).catch(function(){});
   }catch(e){}
+}
+
+// ===== أدوات السجل التفصيلي: سبب الحذف/التعديل + تفاصيل كاملة =====
+function askActionReason(msg){
+  var reason=prompt(msg,'');
+  if(reason===null) return null; // إلغاء العملية
+  reason=(reason||'').trim();
+  if(!reason){showToast('يجب كتابة السبب لإتمام العملية','red');return null;}
+  return reason;
+}
+function _findReportById(rId){
+  var pools=[];
+  try{if(typeof _allReportsCache!=='undefined'&&Array.isArray(_allReportsCache))pools.push(_allReportsCache);}catch(e){}
+  try{if(typeof _myReportsCache!=='undefined'&&Array.isArray(_myReportsCache))pools.push(_myReportsCache);}catch(e){}
+  try{if(typeof reports!=='undefined'&&Array.isArray(reports))pools.push(reports);}catch(e){}
+  for(var i=0;i<pools.length;i++){
+    for(var j=0;j<pools[i].length;j++){
+      if(pools[i][j]&&pools[i][j].id===rId) return pools[i][j];
+    }
+  }
+  var found=null;
+  try{
+    Object.keys(localStorage).filter(function(k){return k.indexOf('jund_reports_')===0;}).forEach(function(key){
+      if(found) return;
+      var saved=JSON.parse(localStorage.getItem(key)||'[]');
+      found=saved.find(function(x){return x&&x.id===rId;})||found;
+    });
+  }catch(e){}
+  return found;
+}
+function _findRequestById(reqId){
+  try{
+    if(typeof _allRequestsCache!=='undefined'&&Array.isArray(_allRequestsCache)){
+      for(var i=0;i<_allRequestsCache.length;i++){
+        if(_allRequestsCache[i]&&_allRequestsCache[i].id===reqId) return _allRequestsCache[i];
+      }
+    }
+  }catch(e){}
+  return null;
+}
+function logReportDeletion(rId, ownerName, reason, repObj){
+  var r=repObj||_findReportById(rId);
+  var target=((r&&(r.title||r.type))||'تقرير')+' ('+(rId||'')+')';
+  var parts=['صاحب التقرير: '+((r&&r.author)||ownerName||'غير معروف')];
+  if(r&&r.type) parts.push('نوع التقرير: '+r.type);
+  if(r&&(r.date||r.time)) parts.push('تاريخ التقرير: '+(r.date||'—')+(r.time?(' '+r.time):''));
+  parts.push('سبب الحذف: '+(reason||'لم يُذكر'));
+  logActivity('حذف تقرير', target, parts.join(' — '));
+}
+function logRequestDeletion(reqId, ownerName, reason){
+  var r=_findRequestById(reqId);
+  var target=((r&&r.type)||'طلب')+' ('+(reqId||'')+')';
+  var parts=['صاحب الطلب: '+((r&&r.author)||ownerName||'غير معروف')];
+  if(r&&(r.date||r.time)) parts.push('تاريخ الطلب: '+(r.date||'—')+(r.time?(' '+r.time):''));
+  if(r&&r.status) parts.push('حالته عند الحذف: '+r.status);
+  parts.push('سبب الحذف: '+(reason||'لم يُذكر'));
+  logActivity('حذف طلب', target, parts.join(' — '));
+}
+function _trimLogVal(s){s=String(s==null?'':s);s=s.replace(/\s+/g,' ').trim();return s.length>60?(s.slice(0,60)+'…'):(s||'فارغ');}
+function _diffReports(oldR, newR){
+  var changes=[];
+  var labels={title:'العنوان',type:'النوع',date:'التاريخ',time:'الوقت',priority:'درجة الأهمية',detail:'التفاصيل',location:'الموقع'};
+  Object.keys(labels).forEach(function(k){
+    var a=(oldR&&oldR[k])!=null?String(oldR[k]):'', b=(newR&&newR[k])!=null?String(newR[k]):'';
+    if(a!==b) changes.push(labels[k]+': من "'+_trimLogVal(a)+'" إلى "'+_trimLogVal(b)+'"');
+  });
+  var of=(oldR&&oldR.fields)||{}, nf=(newR&&newR.fields)||{};
+  var keys={};
+  Object.keys(of).forEach(function(k){keys[k]=1;});
+  Object.keys(nf).forEach(function(k){keys[k]=1;});
+  Object.keys(keys).forEach(function(k){
+    var a=of[k]==null?'':String(of[k]), b=nf[k]==null?'':String(nf[k]);
+    if(a!==b) changes.push(k.replace(/_/g,' ')+': من "'+_trimLogVal(a)+'" إلى "'+_trimLogVal(b)+'"');
+  });
+  return changes;
 }
 
 function renderActivityLog(){
@@ -7424,8 +7511,10 @@ function saveIncNumber(rid){
   var inp=document.getElementById('inc-num-'+rid);
   if(!inp) return;
   var num=inp.value.trim();
+  var _oldRep=_findReportById(rid);
+  var _oldNum=(_oldRep&&_oldRep.incNumber)||'—';
   _patchIncident(rid,{incNumber:num});
-  logActivity('تعديل رقم طلب واقعة', rid, 'الرقم الجديد: '+(num||'—'));
+  logActivity('تعديل رقم طلب واقعة', rid, 'الرقم: من "'+_oldNum+'" إلى "'+(num||'—')+'"');
   if(db){
     db.collection('reports').doc(rid).update({incNumber:num}).then(function(){
       showToast(num?'تم حفظ رقم الطلب':'تم مسح رقم الطلب','green');
@@ -8553,6 +8642,9 @@ function doRejectFromModal(reqId,ownerName){
 }
 function adminDeleteReqFromModal(reqId,ownerName){
   if(!confirm('هل تريد حذف هذا الطلب نهائياً؟')) return;
+  var _delReason=askActionReason('اذكر سبب حذف الطلب (إجباري):');
+  if(_delReason===null) return;
+  logRequestDeletion(reqId, ownerName, _delReason);
   _deleteReqFromAll(reqId);
   closeReqDetailModal();
   if(typeof renderReqApprove==='function') renderReqApprove();
@@ -8632,6 +8724,9 @@ function _deleteReqFromAll(reqId){
 
 function adminDeleteReq(reqId, ownerName){
   if(!confirm('هل تريد حذف هذا الطلب؟')) return;
+  var _delReason=askActionReason('اذكر سبب حذف الطلب (إجباري):');
+  if(_delReason===null) return;
+  logRequestDeletion(reqId, ownerName, _delReason);
   _deleteReqFromAll(reqId);
   renderReqTracking();
   showToast('تم حذف الطلب','red');
@@ -8830,6 +8925,9 @@ function resetReqApprove(reqId, ownerName){
 
 function adminDeleteReqApprove(reqId, ownerName){
   if(!confirm('هل تريد حذف هذا الطلب نهائياً؟')) return;
+  var _delReason=askActionReason('اذكر سبب حذف الطلب (إجباري):');
+  if(_delReason===null) return;
+  logRequestDeletion(reqId, ownerName, _delReason);
   _deleteReqFromAll(reqId);
   renderReqApprove();
   showToast('تم حذف الطلب','red');
@@ -9403,6 +9501,9 @@ function renderMyTrackingList(){
 
 function deleteMyReq(reqId){
   if(!confirm('هل تريد حذف هذا الطلب من قائمتك؟')) return;
+  var _delReason=askActionReason('اذكر سبب حذف الطلب (إجباري):');
+  if(_delReason===null) return;
+  logRequestDeletion(reqId, currentUser.name, _delReason);
   _deleteReqFromAll(reqId);
   renderMyTrackingList();
   showToast('تم حذف الطلب','red');
@@ -9672,8 +9773,11 @@ function openPAModal(r){
 function deletePAItem(){
   if(!_paCurrentItem) return;
   if(!confirm('هل تريد حذف هذا العنصر من قائمة المعاينة؟')) return;
+  var _delReason=askActionReason('اذكر سبب الحذف (إجباري):');
+  if(_delReason===null) return;
   var r=_paCurrentItem;
-  logActivity('حذف من قائمة المعاينة', (r.title||r.type||'')+' ('+(r.id||'')+')', '');
+  logActivity('حذف من قائمة المعاينة', (r.title||r.type||'')+' ('+(r.id||'')+')',
+    'صاحب النموذج: '+(r.author||'غير معروف')+(r.date?(' — تاريخه: '+r.date+(r.time?(' '+r.time):'')):'')+' — سبب الحذف: '+_delReason);
   // احذف من localStorage
   try{
     var paKey='jund_pa_inbox_'+currentUser.name;
@@ -10656,7 +10760,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.8</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.9</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
