@@ -2988,8 +2988,13 @@ function _generatePdfFromHtml(fullHtml, filename){
     // اجعل ارتفاع الصفحة يطابق نسبة A4 عند عرض 794px
     // + عطّل تباعد الأحرف داخل حاوية PDF فقط — html2canvas يكسر اتصال الحروف العربية مع letter-spacing
     var fix=document.createElement('style');
-    fix.textContent='#jund-pdf-root .page-wrap{min-height:1115px !important} #jund-pdf-root *{letter-spacing:normal !important;word-spacing:normal !important}';
+    fix.textContent='#jund-pdf-root .page-wrap{min-height:1115px !important} #jund-pdf-root *{letter-spacing:normal !important;word-spacing:normal !important} #jund-pdf-root .sv-navy,#jund-pdf-root .sv-gold,#jund-pdf-root .sv-gray,#jund-pdf-root .iv,#jund-pdf-root .val,#jund-pdf-root td,#jund-pdf-root th{unicode-bidi:isolate;direction:rtl;text-align:right}';
     container.appendChild(fix);
+    // احرص على تحميل خط Cairo داخل الحاوية نفسها حتى لا يسقط html2canvas لخط بديل يبعثر العربية
+    var fontLink=document.createElement('link');
+    fontLink.rel='stylesheet';
+    fontLink.href='https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap';
+    container.appendChild(fontLink);
 
     // ===== تجميع المحتوى في "صفحات" حسب فواصل page-break =====
     var bodyNodes=Array.prototype.slice.call(doc.body.childNodes);
@@ -3013,6 +3018,21 @@ function _generatePdfFromHtml(fullHtml, filename){
     groups.forEach(function(g){ container.appendChild(g); });
     document.body.appendChild(container);
 
+    // ===== انتظر تحميل الخط العربي فعلياً قبل الرسم (أهم إصلاح لمشكلة تبعثر النص على آيفون) =====
+    var fontWait=Promise.resolve();
+    try{
+      if(document.fonts && document.fonts.load){
+        fontWait=Promise.all([
+          document.fonts.load('400 15px "Cairo"'),
+          document.fonts.load('600 15px "Cairo"'),
+          document.fonts.load('700 22px "Cairo"')
+        ]).then(function(){ return document.fonts.ready; }).catch(function(){});
+      }
+    }catch(e){}
+    // مهلة أمان: لا تنتظر الخط أكثر من 3.5 ثانية حتى لا يتجمّد التنزيل
+    var fontGuard=new Promise(function(res){ setTimeout(res,3500); });
+    var fontsReady=Promise.race([fontWait, fontGuard]);
+
     // ===== انتظر تحميل كل الصور قبل الرسم =====
     var imgs=Array.prototype.slice.call(container.querySelectorAll('img'));
     var waits=imgs.map(function(im){
@@ -3023,7 +3043,12 @@ function _generatePdfFromHtml(fullHtml, filename){
       });
     });
 
-    Promise.all(waits).then(function(){
+    Promise.all([fontsReady].concat(waits)).then(function(){
+      // فرصة قصيرة لسفاري لتطبيق تشكيل الحروف العربية بعد جاهزية الخط
+      setTimeout(function(){ _pdfRenderPages(); }, 120);
+    });
+
+    function _pdfRenderPages(){
       var jsPDFCtor=(window.jspdf&&window.jspdf.jsPDF)?window.jspdf.jsPDF:window.jsPDF;
       var pdf=new jsPDFCtor({unit:'mm',format:'a4',orientation:'portrait'});
       var pageW=210, pageH=297;
@@ -3076,7 +3101,7 @@ function _generatePdfFromHtml(fullHtml, filename){
       }
       // مهلة صغيرة حتى تُطبَّق الأنماط والخطوط
       setTimeout(function(){ renderNext(0); }, 300);
-    });
+    }
   }catch(e){
     console.error('خطأ PDF:',e);
     cleanup();
@@ -10760,7 +10785,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v10.9</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.0</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
