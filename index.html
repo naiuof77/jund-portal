@@ -3311,8 +3311,8 @@ function _doPrintCurrentReport(r){
     var totalPar=zones.filter(function(z){return z.status==='partial';}).length;
     var totalFlt=zones.filter(function(z){return z.status==='fault';}).length;
     w.document.write('<div class="info-row">'+
-      '<div class="ib"><div class="il">المراقب</div><div class="iv">'+cctv.name+'</div></div>'+
-      '<div class="ib"><div class="il">الشفت</div><div class="iv">'+cctv.shift+'</div></div>'+
+      '<div class="ib"><div class="il">المراقب</div><div class="iv">'+escHtml(cctv.name||'')+'</div></div>'+
+      '<div class="ib"><div class="il">الشفت</div><div class="iv">'+escHtml(cctv.shift||'')+'</div></div>'+
       '<div class="ib"><div class="il">التاريخ</div><div class="iv">'+cctv.date+'</div></div>'+
       '<div class="ib"><div class="il">الفترة</div><div class="iv">'+(cctv.startTime||'—')+' — '+(cctv.endTime||'—')+'</div></div>'+
     '</div>');
@@ -3333,9 +3333,9 @@ function _doPrintCurrentReport(r){
       zones.map(function(z,i){
         var col=stColor[z.status||'—']||'#aaa';
         return '<tr style="'+(i%2===1?'background:#fafafa':'')+';border-right:3px solid '+col+'">'+
-          '<td style="padding:7px 10px;font-weight:600">'+z.label+'</td>'+
+          '<td style="padding:7px 10px;font-weight:600">'+escHtml(z.label||'')+'</td>'+
           '<td style="text-align:center;font-weight:700;color:'+col+'">'+stLabel[z.status||'—']+'</td>'+
-          '<td style="color:#666;font-size:11px">'+z.note+'</td></tr>';
+          '<td style="color:#666;font-size:11px">'+escHtml(z.note||'')+'</td></tr>';
       }).join('')+'</tbody></table>');
     if(cctv.events&&cctv.events.length>0){
       w.document.write('<div class="sl" style="color:#1a7f7f">أحداث الوردية</div>'+
@@ -3345,8 +3345,8 @@ function _doPrintCurrentReport(r){
         '</tr></thead><tbody>'+
         cctv.events.map(function(ev,i){
           return '<tr style="'+(i%2===1?'background:#fafafa':'')+'">'+
-            '<td style="text-align:center;color:#888">'+ev.time+'</td><td>'+ev.type+'</td>'+
-            '<td style="text-align:center;color:#888">'+(ev.cam||'—')+'</td><td>'+ev.desc+'</td></tr>';
+            '<td style="text-align:center;color:#888">'+escHtml(ev.time||'')+'</td><td>'+escHtml(ev.type||'')+'</td>'+
+            '<td style="text-align:center;color:#888">'+escHtml(ev.cam||'—')+'</td><td>'+escHtml(ev.desc||'')+'</td></tr>';
         }).join('')+'</tbody></table>');
     }
     if(cctv.summary){
@@ -3414,14 +3414,14 @@ function _doPrintCurrentReport(r){
     var khv=r.khv;
     w.document.write('<div class="sl">بيانات الاستلام والتسليم</div>'+
       '<table>'+
-      '<tr><td class="lbl">من وردية</td><td class="val" style="font-weight:800;color:#c0392b">'+khv.fromShift+'</td></tr>'+
-      '<tr><td class="lbl">إلى وردية</td><td class="val" style="font-weight:800;color:#2d8a4e">'+khv.toShift+'</td></tr>'+
+      '<tr><td class="lbl">من وردية</td><td class="val" style="font-weight:800;color:#c0392b">'+escHtml(khv.fromShift||'')+'</td></tr>'+
+      '<tr><td class="lbl">إلى وردية</td><td class="val" style="font-weight:800;color:#2d8a4e">'+escHtml(khv.toShift||'')+'</td></tr>'+
       '<tr><td class="lbl">التاريخ</td><td class="val">'+khv.date+'</td></tr>'+
-      '<tr><td class="lbl">الوقت</td><td class="val">'+khv.time+'</td></tr>'+
-      '<tr><td class="lbl">المُسلِّم</td><td class="val" style="color:#c0392b">'+khv.from+(khv.fromShift?' &nbsp;<span style="background:#ffeaea;color:#c0392b;border-radius:4px;padding:2px 8px;font-size:11px">وردية '+khv.fromShift+'</span>':'')+'</td></tr>'+
-      '<tr><td class="lbl">المُستلِم</td><td class="val" style="color:#2d8a4e">'+khv.to+(khv.toShift?' &nbsp;<span style="background:#f0fff4;color:#2d8a4e;border-radius:4px;padding:2px 8px;font-size:11px">وردية '+khv.toShift+'</span>':'')+'</td></tr>'+
+      '<tr><td class="lbl">الوقت</td><td class="val">'+escHtml(khv.time||'')+'</td></tr>'+
+      '<tr><td class="lbl">المُسلِّم</td><td class="val" style="color:#c0392b">'+escHtml(khv.from||'')+(khv.fromShift?' &nbsp;<span style="background:#ffeaea;color:#c0392b;border-radius:4px;padding:2px 8px;font-size:11px">وردية '+escHtml(khv.fromShift||'')+'</span>':'')+'</td></tr>'+
+      '<tr><td class="lbl">المُستلِم</td><td class="val" style="color:#2d8a4e">'+escHtml(khv.to||'')+(khv.toShift?' &nbsp;<span style="background:#f0fff4;color:#2d8a4e;border-radius:4px;padding:2px 8px;font-size:11px">وردية '+escHtml(khv.toShift||'')+'</span>':'')+'</td></tr>'+
       '<tr><td class="lbl">المفاتيح الموجودة</td><td class="val" style="font-size:16px;font-weight:800;color:#1B2A6B">'+khv.presentCount+' / '+khv.items.length+'</td></tr>'+
-      (khv.notes&&khv.notes!=='لا يوجد'?'<tr><td class="lbl">ملاحظات</td><td>'+khv.notes+'</td></tr>':'')+
+      (khv.notes&&khv.notes!=='لا يوجد'?'<tr><td class="lbl">ملاحظات</td><td>'+escHtml(khv.notes)+'</td></tr>':'')+
       '</table>');
     w.document.write('<div class="sl" style="color:#8B7A3A">حالة المفاتيح الـ١٨</div>'+
       '<table style="font-size:12px">'+
@@ -3441,11 +3441,11 @@ function _doPrintCurrentReport(r){
       }).join('')+'</tbody></table>');
     w.document.write('</div>');
     w.document.write('<div class="footer">'+
-      '<div style="text-align:center"><div style="font-size:12px;font-weight:700;color:#1B2A6B;margin-bottom:4px">'+khv.from+'</div>');
+      '<div style="text-align:center"><div style="font-size:12px;font-weight:700;color:#1B2A6B;margin-bottom:4px">'+escHtml(khv.from||'')+'</div>');
     injectSignatureInPrint(w, khv.from);
     w.document.write('<div style="font-size:11px;color:#666">توقيع المُسلِّم</div></div>'+
       '<div style="font-size:10px;color:#aaa;text-align:center">JOND | AMAAD</div>'+
-      '<div style="text-align:center"><div style="font-size:12px;font-weight:700;color:#1B2A6B;margin-bottom:4px">'+khv.to+'</div>');
+      '<div style="text-align:center"><div style="font-size:12px;font-weight:700;color:#1B2A6B;margin-bottom:4px">'+escHtml(khv.to||'')+'</div>');
     injectSignatureInPrint(w, khv.to);
     w.document.write('<div style="font-size:11px;color:#666">توقيع المُستلِم</div></div>'+
     '</div>');
@@ -3571,12 +3571,12 @@ function _doPrintCurrentReport(r){
         return '<tr style="'+(i%2===1?'background:#f5fffe':'')+'">'+
           '<td style="padding:7px 8px;text-align:center;color:#1a7f7f;font-weight:700">'+(i+1)+'</td>'+
           '<td style="padding:7px 8px;font-weight:700">'+escHtml(e.name||'')+'</td>'+
-          '<td style="padding:7px 8px;color:#555">'+(e.company||'—')+'</td>'+
+          '<td style="padding:7px 8px;color:#555">'+escHtml(e.company||'—')+'</td>'+
           '<td style="padding:7px 8px;text-align:center;color:#2d8a4e;font-weight:700">'+(e.entryTime||'—')+'</td>'+
           '<td style="padding:7px 8px;text-align:center;color:#c0392b;font-weight:700">'+(e.exitTime||'—')+'</td>'+
           '<td style="padding:7px 8px">'+escHtml(e.reason||'')+'</td>'+
           '<td style="padding:7px 8px;font-size:11px;color:#888">'+(e.addedBy||'—')+'</td>'+
-          '<td style="padding:7px 8px;color:#888">'+(e.notes||'—')+'</td>'+
+          '<td style="padding:7px 8px;color:#888">'+escHtml(e.notes||'—')+'</td>'+
         '</tr>';
       }).join('')+
       '</tbody></table>'
@@ -3656,9 +3656,9 @@ function _doPrintCurrentReport(r){
       '</div>'+
       '<div style="margin-bottom:22px">'+
         '<div style="font-size:11px;color:#888;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">الموضوع</div>'+
-        '<div style="font-size:19px;font-weight:800;color:#1B2A6B;padding-bottom:14px;border-bottom:2px solid #1B2A6B;margin-bottom:20px">'+r.title.replace('إفادة — ','')+'</div>'+
+        '<div style="font-size:19px;font-weight:800;color:#1B2A6B;padding-bottom:14px;border-bottom:2px solid #1B2A6B;margin-bottom:20px">'+escHtml((r.title||'').replace('إفادة — ',''))+'</div>'+
         '<div style="font-size:11px;color:#888;font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">نص الإفادة</div>'+
-        '<div style="font-size:15px;line-height:2.2;color:#1a1a1a;white-space:pre-wrap;padding:18px 20px;background:#fafbff;border-right:3px solid #1B2A6B;border-radius:0 8px 8px 0;min-height:200px">'+af.body+'</div>'+
+        '<div style="font-size:15px;line-height:2.2;color:#1a1a1a;white-space:pre-wrap;padding:18px 20px;background:#fafbff;border-right:3px solid #1B2A6B;border-radius:0 8px 8px 0;min-height:200px">'+escHtml(af.body||'')+'</div>'+
       '</div>'
     );
     w.document.write('</div>');
@@ -10785,7 +10785,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.0</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.1</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
