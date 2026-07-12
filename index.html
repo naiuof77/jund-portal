@@ -3622,7 +3622,7 @@ function _doPrintCurrentReport(r){
         '<span>🕐 '+escHtml(sh.time||'')+'</span>'+
       '</div>'+
       '<div class="sl" style="color:#2d8a4e">تقرير الوردية</div>'+
-      '<div style="font-size:15px;line-height:2.2;color:#1a1a1a;white-space:pre-wrap;padding:18px 20px;background:#fafff8;border-right:3px solid #2d8a4e;border-radius:0 8px 8px 0;min-height:200px">'+escHtml(sh.body||'')+'</div>'
+      '<div style="font-size:15px;line-height:2;color:#1a1a1a;padding:18px 20px;background:#fafff8;border-right:3px solid #2d8a4e;border-radius:0 8px 8px 0;min-height:200px">'+escHtml(sh.body||'').replace(/\n/g,'<br>')+'</div>'
     );
     w.document.write('</div>');
     var shAuthorSig=(r.authorSig||getUserSignature(r.author));
@@ -3658,7 +3658,7 @@ function _doPrintCurrentReport(r){
         '<div style="font-size:11px;color:#888;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">الموضوع</div>'+
         '<div style="font-size:19px;font-weight:800;color:#1B2A6B;padding-bottom:14px;border-bottom:2px solid #1B2A6B;margin-bottom:20px">'+escHtml((r.title||'').replace('إفادة — ',''))+'</div>'+
         '<div style="font-size:11px;color:#888;font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">نص الإفادة</div>'+
-        '<div style="font-size:15px;line-height:2.2;color:#1a1a1a;white-space:pre-wrap;padding:18px 20px;background:#fafbff;border-right:3px solid #1B2A6B;border-radius:0 8px 8px 0;min-height:200px">'+escHtml(af.body||'')+'</div>'+
+        '<div style="font-size:15px;line-height:2;color:#1a1a1a;padding:18px 20px;background:#fafbff;border-right:3px solid #1B2A6B;border-radius:0 8px 8px 0;min-height:200px">'+escHtml(af.body||'').replace(/\n/g,'<br>')+'</div>'+
       '</div>'
     );
     w.document.write('</div>');
@@ -10785,7 +10785,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.1</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.2</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
