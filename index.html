@@ -2298,6 +2298,54 @@ function openEditInForm(r){
 
 var currentReport=null;
 
+// يبني شريحة "وقت الإرسال الفعلي" من الطابع الزمني _ts، مع حساب الفرق عن الوقت المكتوب في التقرير
+function _fmtSendTime(ts){
+  try{
+    var d=new Date(ts);
+    var dd=String(d.getDate()).padStart(2,'0');
+    var mm=String(d.getMonth()+1).padStart(2,'0');
+    var yy=d.getFullYear();
+    var h=d.getHours(), m=String(d.getMinutes()).padStart(2,'0');
+    var ampm=h<12?'ص':'م';
+    var h12=h%12; if(h12===0) h12=12;
+    return dd+'/'+mm+'/'+yy+' - '+h12+':'+m+' '+ampm;
+  }catch(e){ return ''; }
+}
+function _sendDiffText(r){
+  // يقارن وقت الإرسال (_ts) بالتاريخ+الوقت المكتوبين في النموذج
+  try{
+    if(!r._ts || !r.date || !r.time) return '';
+    // r.date قد يكون بصيغة YYYY-MM-DD أو DD/MM/YYYY
+    var dp=r.date.indexOf('-')>-1 ? r.date.split('-') : null;
+    var written;
+    var tt=(r.time||'').split(':'); if(tt.length<2) return '';
+    if(dp && dp.length===3){
+      written=new Date(+dp[0], +dp[1]-1, +dp[2], +tt[0], +tt[1]);
+    } else {
+      var dq=r.date.split('/'); if(dq.length<3) return '';
+      written=new Date(+dq[2], +dq[1]-1, +dq[0], +tt[0], +tt[1]);
+    }
+    var diffMs=r._ts - written.getTime();
+    var diffMin=Math.round(diffMs/60000);
+    if(isNaN(diffMin)) return '';
+    if(Math.abs(diffMin)<2) return 'أُرسل في نفس وقت التقرير';
+    var future=diffMin<0; var a=Math.abs(diffMin);
+    var hrs=Math.floor(a/60), mins=a%60;
+    var parts=[];
+    if(hrs>0) parts.push(hrs+' '+(hrs===1?'ساعة':(hrs===2?'ساعتين':(hrs<=10?'ساعات':'ساعة'))));
+    if(mins>0) parts.push(mins+' '+(mins===1?'دقيقة':(mins===2?'دقيقتين':(mins<=10?'دقائق':'دقيقة'))));
+    var span=parts.join(' و');
+    return future ? ('قبل وقت التقرير بـ '+span) : ('أُرسل بعد '+span+' من وقت التقرير');
+  }catch(e){ return ''; }
+}
+function _sendTimeChip(r){
+  if(!r || !r._ts) return '<div class="modal-meta-chip" style="opacity:.6" title="لم يُسجَّل وقت الإرسال لهذا التقرير (تقرير قديم)"><i class="ti ti-send"></i>الإرسال: غير مسجّل</div>';
+  var sent=_fmtSendTime(r._ts);
+  var diff=_sendDiffText(r);
+  return '<div class="modal-meta-chip" style="background:rgba(214,158,46,0.12);border-color:rgba(214,158,46,0.5);color:var(--gold2)" title="'+(diff||'')+'"><i class="ti ti-send"></i>أُرسل: '+sent+'</div>'+
+    (diff && diff.indexOf('نفس')<0 ? '<div class="modal-meta-chip" style="background:rgba(214,158,46,0.06);border-color:rgba(214,158,46,0.3);color:var(--gold2);font-size:11px"><i class="ti ti-hourglass"></i>'+diff+'</div>' : '');
+}
+
 function openReport(r){
   currentReport=r;
   // إذا الأدمن يفتح تقرير شخص آخر، سجّله كمقروء من الإدارة
@@ -2322,6 +2370,7 @@ function openReport(r){
     '<div class="modal-meta-chip" style="background:rgba(27,42,107,0.18);border-color:rgba(27,42,107,0.5);font-size:13px;font-weight:700;letter-spacing:.5px"><i class="ti ti-hash"></i>'+escHtml(r.id||'')+'</div>'+
     '<div class="modal-meta-chip"><i class="ti ti-calendar"></i>'+escHtml(r.date||'')+'</div>'+
     '<div class="modal-meta-chip"><i class="ti ti-clock"></i>'+escHtml(r.time||'')+'</div>'+
+    _sendTimeChip(r)+
     '<div class="modal-meta-chip"><i class="ti ti-map-pin"></i>'+(r.location||'—')+'</div>'+
     '<div class="modal-meta-chip" style="color:'+r.priorityColor+';border-color:'+r.priorityColor+'"><i class="ti ti-alert-circle"></i>'+escHtml(r.priority||'')+'</div>';
 
@@ -8427,11 +8476,24 @@ function openReq(r){
 
   // شريط المعلومات الزمنية
   var infoBar='';
-  // وقت الإرسال
+  // الوقت المكتوب داخل الطلب
   infoBar+='<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-bottom:6px">'+
-    '<i class="ti ti-send" style="font-size:13px;color:var(--blue)"></i>'+
-    '<span>أُرسل في: <strong style="color:var(--text)">'+r.date+(r.time?' — '+r.time:'')+'</strong></span>'+
+    '<i class="ti ti-clock" style="font-size:13px;color:var(--text2)"></i>'+
+    '<span>وقت الطلب: <strong style="color:var(--text)">'+escHtml(r.date||'')+(r.time?' — '+escHtml(r.time):'')+'</strong></span>'+
   '</div>';
+  // وقت الإرسال الفعلي (لحظة ضغط زر الإرسال)
+  if(r._ts){
+    var _reqSent=_fmtSendTime(r._ts);
+    var _reqDiff=_sendDiffText(r);
+    infoBar+='<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gold2);margin-bottom:6px">'+
+      '<i class="ti ti-send" style="font-size:13px"></i>'+
+      '<span>أُرسل فعلياً: <strong>'+_reqSent+'</strong>'+(_reqDiff&&_reqDiff.indexOf('نفس')<0?' <span style="opacity:.85">('+_reqDiff+')</span>':'')+'</span>'+
+    '</div>';
+  } else {
+    infoBar+='<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);opacity:.6;margin-bottom:6px">'+
+      '<i class="ti ti-send" style="font-size:13px"></i><span>وقت الإرسال: غير مسجّل (طلب قديم)</span>'+
+    '</div>';
+  }
   // قرار الموافقة/الرفض
   if(r.paDecidedBy&&r.paDecidedAt){
     var isApp=r.status==='موافق عليه';
@@ -10785,7 +10847,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.2</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.3</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
