@@ -4123,6 +4123,70 @@ function doRegister(){
   var initial=name.charAt(0);
   var passHash=hashPass(pass);
 
+  // تعطيل زر التسجيل مؤقتاً حتى ينتهي الفحص (يمنع الضغط المزدوج)
+  var _regBtn=document.querySelector('#form-register .btn-primary');
+  if(_regBtn){ _regBtn.disabled=true; _regBtn.style.opacity='0.6'; }
+  function _reEnableReg(){ if(_regBtn){ _regBtn.disabled=false; _regBtn.style.opacity=''; } }
+
+  // ===== تحقق مباشر من قاعدة البيانات (لا نعتمد على النسخة المحمّلة بالمتصفح) =====
+  if(!db){ _reEnableReg(); showToast('لا يوجد اتصال بقاعدة البيانات — حاول مرة أخرى','red'); return; }
+
+  Promise.all([
+    db.collection('system').doc('activeUsers').get(),
+    db.collection('system').doc('pendingUsers').get(),
+    db.collection('passwords').doc(loginUser).get()
+  ]).then(function(res){
+    var activeList = (res[0].exists && res[0].data().list) ? res[0].data().list : [];
+    var pendingList = (res[1].exists && res[1].data().list) ? res[1].data().list : [];
+    var passExists  = res[2].exists;
+
+    // 1) موجود في المستخدمين النشطين؟
+    var inActive = activeList.some(function(u){return u.empId===loginUser||u.loginUser===loginUser;});
+    // 2) موجود في قائمة الانتظار؟
+    var inPending = pendingList.some(function(p){return p.loginUser===loginUser||p.empId===loginUser;});
+
+    if(inActive || passExists){
+      _reEnableReg();
+      showToast('هذا الرقم الوظيفي مسجّل بالفعل — لا يمكن استخدامه','red');
+      return;
+    }
+    if(inPending){
+      _reEnableReg();
+      showToast('يوجد طلب تسجيل بهذا الرقم قيد المراجعة بالفعل','gold');
+      showPage('pending-page');
+      return;
+    }
+
+    // احفظ الطلب في pendingUsers فقط — لا شيء نهائي حتى موافقة الأدمن
+    var pendingEntry={
+      id:'pu_'+Date.now(),
+      loginUser:loginUser, name:name, empId:empId,
+      initial:initial, passHash:passHash,
+      requestedAt:new Date().toLocaleDateString('ar-SA')
+    };
+    pendingList.push(pendingEntry);
+    db.collection('system').doc('pendingUsers').set({list:pendingList,_ts:Date.now()}).then(function(){
+      _reEnableReg();
+      showPage('pending-page');
+    }).catch(function(){
+      _reEnableReg();
+      showToast('خطأ في التسجيل — تحقق من الاتصال','red');
+    });
+  }).catch(function(){
+    _reEnableReg();
+    showToast('تعذّر التحقق من الرقم الوظيفي — تحقق من الاتصال وحاول مجدداً','red');
+  });
+}
+
+function doRegister_OLD_REMOVED(){
+  var name=document.getElementById('reg-name').value.trim();
+  var empId=document.getElementById('reg-empid').value.trim();
+  var pass=(document.getElementById('reg-pass')||{}).value||'';
+
+  var loginUser=empId;
+  var initial=name.charAt(0);
+  var passHash=hashPass(pass);
+
   // تحقق فقط من المستخدمين النشطين — لا تمنع التسجيل إذا كان رقمه في الانتظار أو مرفوضاً سابقاً
   fbLoadPendingUsers(function(pending){
     // هل الرقم موجود في قائمة الانتظار حالياً؟
@@ -10847,7 +10911,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.3</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.4</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
