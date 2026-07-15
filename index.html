@@ -258,7 +258,7 @@ body.sidebar-open .sidebar-overlay{opacity:1;visibility:visible}
 .info-box{background:var(--dark3);border-radius:8px;padding:12px 16px;flex:1;min-width:140px;border:1px solid rgba(27,42,107,0.15)}
 .info-box-label{font-size:11px;color:var(--text2);margin-bottom:5px}
 .info-box-val{font-size:14px;font-weight:600;color:var(--text)}
-.modal-actions{display:flex;gap:12px;padding:18px 28px;border-top:1px solid rgba(27,42,107,0.2);background:var(--dark3);border-radius:0 0 16px 16px;justify-content:flex-end}
+.modal-actions{display:flex;flex-wrap:wrap;gap:12px;padding:18px 28px;border-top:1px solid rgba(27,42,107,0.2);background:var(--dark3);border-radius:0 0 16px 16px;justify-content:flex-end;align-items:center}
 /* PRINT PREVIEW INSIDE MODAL */
 .print-doc-wrap{background:var(--dark3);border-radius:10px;padding:18px;margin-top:18px;display:none}
 .print-doc-inner{background:#fff;border-radius:8px;padding:32px 40px;color:#1a1a1a;direction:rtl;font-family:"Cairo",sans-serif}
@@ -1957,7 +1957,7 @@ _authReady.then(function(){
                 <div class="form-gp"><label class="form-lp">الرقم الوظيفي</label><input class="form-ip" type="text" id="sal-id" readonly style="background:rgba(27,42,107,0.05);color:var(--text2);cursor:default" placeholder="رقم الهوية الوظيفية"/></div>
               </div>
               <div class="form-row">
-                <div class="form-gp"><label class="form-lp">المسمى الوظيفي</label><input class="form-ip" type="text" id="sal-title" placeholder="مثال: ضابط أمن"/></div>
+                <div class="form-gp"><label class="form-lp">المسمى الوظيفي</label><input class="form-ip" type="text" id="sal-title" readonly style="background:rgba(27,42,107,0.05);color:var(--text2);cursor:default" placeholder="يُعبّأ تلقائياً"/></div>
               </div>
               <div class="form-row">
                 <div class="form-gp"><label class="form-lp">تاريخ الالتحاق بالعمل</label><input class="form-ip" type="date" id="sal-joindate"/></div>
@@ -4004,6 +4004,9 @@ function doLogin(){
           } else {
             _finishLogin(u,a,name,empId,perms,fixedData);
           }
+        }).catch(function(){
+          // فشل تحميل قائمة المنتسبين — لا تدخل ببيانات ناقصة
+          showToast('تعذّر تحميل البيانات — تحقق من الاتصال وحاول مجدداً','red');
         });
       });
     });
@@ -8297,8 +8300,20 @@ function showReqForm(type){
     var i=document.getElementById('ijz-id');if(i&&currentUser.empId)i.value=currentUser.empId;
   }
   if(type==='تعريف بالراتب'){
+    var _me=activeUsers.find(function(x){return x.name===currentUser.name;});
     var n=document.getElementById('sal-name');if(n&&currentUser.name)n.value=currentUser.name;
-    var i=document.getElementById('sal-id');if(i&&currentUser.empId)i.value=currentUser.empId;
+    // الرقم الوظيفي: من الجلسة، وإلا من سجل المنتسب
+    var _eid=currentUser.empId||(_me&&_me.empId)||'';
+    var i=document.getElementById('sal-id');if(i)i.value=_eid;
+    // المسمى الوظيفي: يُعبّأ تلقائياً من رتبة المنتسب
+    var _rank=currentUser.rank||(_me&&_me.rank)||'';
+    var t=document.getElementById('sal-title');
+    if(t){
+      t.value=_rank;
+      // لو تعذّر جلب الرتبة، اسمح بالكتابة اليدوية بدل ترك الحقل معطّلاً وفارغاً
+      if(!_rank){ t.removeAttribute('readonly'); t.placeholder='اكتب المسمى الوظيفي'; t.style.background=''; t.style.color=''; }
+      else { t.setAttribute('readonly','readonly'); }
+    }
     var jd=document.getElementById('sal-joindate');if(jd)jd.value=today;
   }
   if(type==='إجازة مرضية'){
@@ -8736,7 +8751,6 @@ function openReq(r){
   // زر معاينة + طباعة للجميع
   actionsDiv.innerHTML+=
     '<button onclick="downloadRequestPDF()" style="padding:11px 18px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:8px;color:var(--red);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px"><i class="ti ti-file-type-pdf"></i> تنزيل PDF</button>'+
-    '<button onclick="downloadRequestPDF()" style="padding:11px 18px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:8px;color:var(--red);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px"><i class="ti ti-file-type-pdf"></i> تنزيل PDF</button>'+
     '<button onclick="printCurrentReqModal()" style="padding:11px 18px;background:rgba(27,42,107,0.1);border:1px solid rgba(27,42,107,0.3);border-radius:8px;color:var(--text2);font-family:Cairo,sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:7px"><i class="ti ti-printer"></i> طباعة</button>';
 
   // delete button for admin
@@ -8751,19 +8765,8 @@ function openReq(r){
       '<button onclick="doRejectFromModal(\''+escHtml(r.id||'')+'\',\''+r.author+'\')" style="padding:11px 22px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.4);border-radius:8px;color:#F85149;font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px"><i class="ti ti-x"></i> رفض</button>';
   }
 
-  // سبب الرفض إن وجد
-  var rejDiv=document.getElementById('req-reject-reason-wrap');
-  if(rejDiv){
-    if(r.status==='مرفوض'&&r.rejectReason){
-      rejDiv.style.display='block';
-      rejDiv.innerHTML='<div style="background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.25);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start">'+
-        '<i class="ti ti-alert-circle" style="color:var(--red);font-size:18px;flex-shrink:0;margin-top:1px"></i>'+
-        '<div><div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:3px">سبب الرفض</div>'+
-        '<div style="font-size:13px;color:var(--text)">'+escHtml(r.rejectReason)+'</div></div></div>';
-    } else {
-      rejDiv.style.display='none';
-    }
-  }
+  // ملاحظة: شريط المعلومات الزمنية (وقت الطلب/الإرسال/سبب الرفض) بُني مسبقاً في infoBar
+  // ولا يُعاد بناؤه هنا حتى لا يُمسح.
   document.getElementById('req-detail-modal').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -10911,7 +10914,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.4</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.5</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
@@ -10986,10 +10989,16 @@ function fbLoadPendingUsers(callback){
 function fbSavePermissions(perms){
   return db.collection('system').doc('permissions').set({data: perms, _ts: Date.now()});
 }
-function fbLoadPermissions(callback){
+function fbLoadPermissions(callback, _retry){
   db.collection('system').doc('permissions').get().then(function(doc){
     if(doc.exists && doc.data().data) callback(doc.data().data);
     else callback({});
+  }).catch(function(e){
+    // محاولة ثانية قبل الاستسلام — يمنع فقدان الصلاحيات بسبب انقطاع لحظي
+    if(!_retry){ setTimeout(function(){ fbLoadPermissions(callback, true); }, 800); return; }
+    console.warn('تعذّر تحميل الصلاحيات:', e);
+    showToast('تعذّر تحميل الصلاحيات — قد لا تظهر كل بياناتك، حدّث الصفحة','red');
+    callback({});
   });
 }
 
@@ -11394,7 +11403,9 @@ function startUserListener(userName){
           if(doc.exists && doc.data().list) activeUsers = doc.data().list;
           _finishLogin(u, true, FIXED.name, FIXED.empId, perms||{}, FIXED);
         }).catch(function(){
-          _finishLogin(u, true, FIXED.name, FIXED.empId, {}, FIXED);
+          // فشل تحميل بيانات المنتسبين — لا تدخل ببيانات ناقصة، ارجع لشاشة الدخول
+          try{ sessionStorage.removeItem('jund_session'); }catch(e){}
+          showToast('تعذّر تحميل البيانات — سجّل الدخول مجدداً','red');
         });
       });
       return;
