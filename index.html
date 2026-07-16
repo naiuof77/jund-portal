@@ -1513,7 +1513,8 @@ _authReady.then(function(){
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px">
             <button onclick="backToUsersList()" style="background:transparent;border:1px solid rgba(27,42,107,0.3);border-radius:8px;padding:8px 16px;color:var(--text2);font-size:13px;cursor:pointer;font-family:Tajawal,sans-serif;display:flex;align-items:center;gap:6px"><i class="ti ti-arrow-right"></i> رجوع</button>
             <div id="uprofile-title" class="page-title" style="margin:0"></div>
-            <button onclick="deleteCurrentProfileUser()" style="margin-right:auto;background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.35);border-radius:8px;padding:8px 16px;color:var(--red);font-size:13px;font-weight:700;cursor:pointer;font-family:Tajawal,sans-serif;display:flex;align-items:center;gap:6px"><i class="ti ti-user-x"></i> حذف المنتسب</button>
+            <button onclick="resetUserPassword()" style="margin-right:auto;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.35);border-radius:8px;padding:8px 16px;color:var(--gold2);font-size:13px;font-weight:700;cursor:pointer;font-family:Tajawal,sans-serif;display:flex;align-items:center;gap:6px"><i class="ti ti-key"></i> تصفير كلمة المرور</button>
+            <button onclick="deleteCurrentProfileUser()" style="background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.35);border-radius:8px;padding:8px 16px;color:var(--red);font-size:13px;font-weight:700;cursor:pointer;font-family:Tajawal,sans-serif;display:flex;align-items:center;gap:6px"><i class="ti ti-user-x"></i> حذف المنتسب</button>
           </div>
           <!-- بطاقة المعلومات -->
           <div id="uprofile-card" style="background:var(--dark2);border:1px solid rgba(27,42,107,0.2);border-radius:14px;padding:22px;margin-bottom:20px;display:flex;align-items:center;gap:18px">
@@ -4087,6 +4088,15 @@ function _finishLogin(u,a,name,empId,perms,fixedData){
 
   // ابدأ نبض الحالة (متصل الآن)
   startPresence();
+
+  // تذكير بتغيير كلمة المرور المؤقتة بعد تصفيرها من الأدمن
+  try{
+    if(!a && matchedUser && matchedUser.mustChangePass){
+      setTimeout(function(){
+        showToast('كلمة مرورك مؤقتة — غيّرها من: الإعدادات ← تغيير كلمة المرور','gold');
+      }, 1500);
+    }
+  }catch(e){}
 
   // احفظ الجلسة حتى لا يخرج المستخدم عند تحديث الصفحة
   try{
@@ -9160,6 +9170,119 @@ function openUserProfile(userId){
   switchProfileTab('reports');
 }
 
+// ===== تصفير كلمة مرور منتسب (للأدمن فقط) =====
+function _genTempPass(){
+  // كلمة مرور مؤقتة سهلة القراءة (بدون أحرف ملتبسة مثل O/0 و l/1)
+  var chars='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  var n=8, s='';
+  try{
+    // عشوائية آمنة تشفيرياً (لا يمكن التنبؤ بها)
+    if(window.crypto && window.crypto.getRandomValues){
+      var buf=new Uint32Array(n);
+      window.crypto.getRandomValues(buf);
+      // تجنّب انحياز باقي القسمة: أعد السحب لأي قيمة خارج أكبر مضاعف كامل
+      var limit=Math.floor(4294967296/chars.length)*chars.length;
+      for(var i=0;i<n;i++){
+        var v=buf[i];
+        while(v>=limit){
+          var one=new Uint32Array(1);
+          window.crypto.getRandomValues(one);
+          v=one[0];
+        }
+        s+=chars.charAt(v%chars.length);
+      }
+      return 'Jund-'+s;
+    }
+  }catch(e){}
+  // بديل احتياطي للمتصفحات القديمة جداً فقط
+  s='';
+  for(var j=0;j<n;j++) s+=chars.charAt(Math.floor(Math.random()*chars.length));
+  return 'Jund-'+s;
+}
+function resetUserPassword(){
+  if(!currentUser.isAdmin){showToast('هذه الصلاحية لمدير الأمن فقط','red');return;}
+  var u=currentProfileUser;
+  if(!u){showToast('لم يتم تحديد منتسب','red');return;}
+
+  // اسم الدخول = الرقم الوظيفي (حسب آلية التسجيل)
+  var loginUser=u.empId||u.loginUser||'';
+  if(!loginUser){showToast('لا يوجد رقم وظيفي لهذا المنتسب — تعذّر التصفير','red');return;}
+
+  if(!confirm('تصفير كلمة مرور: '+u.name+'\n\nسيتم إنشاء كلمة مرور مؤقتة جديدة، ولن تعمل كلمته القديمة.\nهل تريد المتابعة؟')) return;
+
+  var _reason=askActionReason('اذكر سبب التصفير (إجباري):');
+  if(_reason===null) return;
+
+  var temp=_genTempPass();
+  fbSavePassword(loginUser, hashPass(temp)).then(function(){
+    // علّم الحساب بأنه بحاجة لتغيير كلمة المرور عند أول دخول
+    try{
+      var _uu=activeUsers.find(function(x){return x.id===u.id;});
+      if(_uu){ _uu.mustChangePass=true; saveActiveUsersPermissions(); }
+    }catch(e){}
+    logActivity('تصفير كلمة مرور', u.name+' ('+loginUser+')', 'السبب: '+_reason+' — بواسطة: '+currentUser.name);
+    _showTempPassModal(u.name, loginUser, temp);
+  }).catch(function(){
+    showToast('تعذّر حفظ كلمة المرور — تحقق من الاتصال','red');
+  });
+}
+
+function _showTempPassModal(name, loginUser, temp){
+  var old=document.getElementById('temp-pass-modal');
+  if(old) old.remove();
+  var d=document.createElement('div');
+  d.id='temp-pass-modal';
+  d.className='modal-overlay open';
+  d.innerHTML=
+    '<div class="modal-box" style="max-width:460px">'+
+      '<div class="modal-header"><div><div class="modal-title"><i class="ti ti-key" style="color:var(--gold2)"></i> تم تصفير كلمة المرور</div>'+
+      '<div style="font-size:12px;color:var(--text2);margin-top:3px">'+escHtml(name)+'</div></div>'+
+      '<button class="modal-close" onclick="document.getElementById(\'temp-pass-modal\').remove();document.body.style.overflow=\'\'">&#10005;</button></div>'+
+      '<div class="modal-body" style="padding:24px">'+
+        '<div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:16px;margin-bottom:16px">'+
+          '<div style="font-size:12px;color:var(--text2);margin-bottom:6px">اسم الدخول</div>'+
+          '<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:14px;letter-spacing:.5px">'+escHtml(loginUser)+'</div>'+
+          '<div style="font-size:12px;color:var(--text2);margin-bottom:6px">كلمة المرور المؤقتة</div>'+
+          '<div id="temp-pass-val" style="font-size:20px;font-weight:800;color:var(--gold2);letter-spacing:1px;font-family:monospace;direction:ltr;text-align:center;background:var(--dark3);border-radius:8px;padding:12px">'+escHtml(temp)+'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:10px;align-items:flex-start;background:rgba(248,81,73,0.06);border:1px solid rgba(248,81,73,0.25);border-radius:8px;padding:12px 14px">'+
+          '<i class="ti ti-alert-circle" style="color:var(--red);font-size:17px;flex-shrink:0;margin-top:1px"></i>'+
+          '<div style="font-size:12.5px;color:var(--text);line-height:1.7">'+
+            'هذه الكلمة تظهر <b>مرة واحدة فقط</b> — انسخها وسلّمها للمنتسب الآن.<br>'+
+            'اطلب منه تغييرها فور دخوله من: <b>الإعدادات ← تغيير كلمة المرور</b>.'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="modal-actions">'+
+        '<button onclick="_copyTempPass()" style="padding:11px 18px;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.4);border-radius:8px;color:var(--gold2);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px"><i class="ti ti-copy"></i> نسخ كلمة المرور</button>'+
+        '<button class="btn-outline" onclick="document.getElementById(\'temp-pass-modal\').remove();document.body.style.overflow=\'\'"><i class="ti ti-check"></i> تم</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(d);
+  document.body.style.overflow='hidden';
+}
+
+function _copyTempPass(){
+  var el=document.getElementById('temp-pass-val');
+  if(!el) return;
+  var txt=el.textContent;
+  function done(){ showToast('تم نسخ كلمة المرور','green'); }
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done).catch(function(){_fallbackCopy(txt,done);});
+    } else { _fallbackCopy(txt,done); }
+  }catch(e){ _fallbackCopy(txt,done); }
+}
+function _fallbackCopy(txt,cb){
+  try{
+    var ta=document.createElement('textarea');
+    ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    cb();
+  }catch(e){ showToast('انسخها يدوياً','gold'); }
+}
+
 function deleteCurrentProfileUser(){
   if(!currentProfileUser) return;
   logActivity('بدء حذف منتسب', currentProfileUser.name, '');
@@ -10503,6 +10626,11 @@ function doChangePass(){
     fbLoadPassword(lUser, function(savedHash){
       if(!savedHash || hashPass(oldPass) !== savedHash){ showToast('كلمة المرور الحالية غير صحيحة','red'); return; }
       fbSavePassword(lUser, hashPass(newPass));
+      // ألغِ علامة "كلمة مرور مؤقتة" بعد التغيير الفعلي
+      try{
+        var _mu=activeUsers.find(function(x){return x.name===currentUser.name;});
+        if(_mu && _mu.mustChangePass){ _mu.mustChangePass=false; saveActiveUsersPermissions(); }
+      }catch(e){}
       closeChangePassModal();
       showToast('✅ تم تغيير كلمة المرور بنجاح','green');
     });
@@ -10914,7 +11042,7 @@ function injectSignatureInPrint(w,authorName){
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
       <span style="font-size:11px;color:var(--text2)">بوابة جُنْد الأمنية</span>
       <span style="color:rgba(27,42,107,0.4);font-size:11px">•</span>
-      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.5</span>
+      <span style="font-size:11px;font-weight:700;color:var(--gold2)">الإصدار v11.7</span>
     </div>
 
 <!-- ===== Firebase SDK + Init ===== -->
